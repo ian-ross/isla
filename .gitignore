@@ -30,3 +30,6 @@ CMakeFiles/*
 /src/test/Testing/*
 Makefile
 /src/Testing/Temporary
+/src/test/test_GridData
+/src/test/test_LoadMask
+/src/test/test_grid.nc
