@@ -11,7 +11,7 @@ INCLUDE_DIRECTORIES(${NETCDF_INCLUDES})
 FIND_PACKAGE(wxWidgets REQUIRED core base)
 INCLUDE(${wxWidgets_USE_FILE})
 
-SET(isla_SRCS isla.cpp)
+SET(isla_SRCS isla.cpp dialogs.cpp game.cpp)
 ADD_EXECUTABLE(isla ${isla_SRCS})
 TARGET_LINK_LIBRARIES(isla islalib)
 TARGET_LINK_LIBRARIES(isla ${wxWidgets_LIBRARIES})

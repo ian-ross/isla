@@ -14,8 +14,6 @@
 
 #include "Grid.hh"
 
-#include <iostream>
-
 template<class T> class GridData {
 public:
   GridData(GridPtr grid, T def) :
@@ -114,7 +112,6 @@ template<typename T> GridData<T>::GridData
                             ncvar + "' is not on lat/lon grid");
 
   // Read data in one go at original type and cast to output type.
-  std::cout << "Variable type: " << var.getType().getName() << std::endl;
   int n = nlat * nlon;
   switch (var.getType().getId()) {
   case netCDF::NcType::nc_BYTE:
