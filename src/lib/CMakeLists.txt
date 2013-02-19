@@ -1,4 +1,4 @@
-SET(lib_SRCS GridData.cpp)
+SET(lib_SRCS Grid.cpp)
 
 FIND_PACKAGE(Boost REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
