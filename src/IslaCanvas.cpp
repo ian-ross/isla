@@ -50,29 +50,28 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   GridPtr g = model->grid();
 
   // Set up initial sizing.  We start with a nominal width, take off
-  // the space required for the axis borders, calculate a mean cell
-  // width and height from the grid size, then use this to set the
-  // initial window size.
-  // ===> THIS ISN'T QUITE RIGHT: THE CANVAS SIZE IS A LITTLE BIT TOO
-  //      SMALL.  NOT SURE WHY.
+  // the space required for the axis borders, then calculate a map
+  // aspect ratio based on the padding we need to add to have full
+  // grid cells at the top and bottom.  We can then use this to
+  // calculate the map height, and add the border widths to get
+  // requested canvas dimensions.
   int nomw = 1000;
-  int mapw = nomw - 2 * bw;
-  int meancellw = mapw / g->nlon();
-  double dlon = 360.0 / g->nlon(), dlat = 180.0 / g->nlat();
-  double aspect = dlat / dlon;
-  int meancellh = aspect * meancellw;
-  canw = meancellw * g->nlon() + 2 * bw;
-  canh = meancellh * g->nlat() + 2 * bw;
+  mapw = nomw - 2 * bw;
+  double maplon = 360.0;
+  double maplat = 180.0 + g->lat(1) - g->lat(0);
+  double aspect = maplat / maplon;
+  maph = mapw * aspect;
+  canw = mapw + 2 * bw;      canh = maph + 2 * bw;
+  xoff = (canw - mapw) / 2;  yoff = (canh - maph) / 2;
   SetSize(wxDefaultCoord, wxDefaultCoord, canw, canh);
 
   // Reset view.
   clon = 180.0;
   clat = 0.0;
-  double lonscale = (canw - 2 * bw) / 360.0;
-  double latscale = (canh - 2 * bw) / 180.0;
-  cout << "lonscale=" << lonscale << " latscale=" << latscale << endl;
-  scale = lonscale;
+  scale = mapw / 360.0;
 
+  // UI setup.
+  mouse = MOUSE_NOTHING;
   SetCursor(*wxCROSS_CURSOR);
 
     // // reduce flicker if wxEVT_ERASE_BACKGROUND is not available
@@ -101,11 +100,12 @@ void IslaCanvas::modelReset(IslaModel *m)
 
   // Determine inter-grid cell latitudes and longitudes (used for
   // bounds of grid cells and for drawing grid lines).
-  iclons.resize(g->nlon());
   int n = g->nlon();
+  iclons.resize(n + 1);
   for (int i = 0; i < n; ++i)
-    iclons[(i+1) % n] =
+    iclons[i+1] =
       g->lon(i) + fmod(360.0 + g->lon((i+1) % n) - g->lon(i), 360.0) / 2;
+  iclons[0] = -fmod(360.0 + g->lon(0) - g->lon(n-1), 360.0) / 2;
   iclats.resize(g->nlat() + 1);
   n = g->nlat();
   for (int i = 0; i < n-1; ++i)
@@ -232,14 +232,17 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   GridPtr g = model->grid();
   int nlon = g->nlon(), nlat = g->nlat();
   wxPaintDC dc(this);
+  wxCoord tw1, tw2, th;
+  dc.GetTextExtent(_("88"), &tw1, &th);
+  dc.GetTextExtent(_("XXXW"), &tw2, &th);
 
   // Clear grid cell and axis areas.
   dc.SetBrush(*wxWHITE_BRUSH);
-  dc.DrawRectangle(bw, 0, canw - 2 * bw, canh);
-  dc.DrawRectangle(0, bw, canw, canh - 2 * bw);
+  dc.DrawRectangle(xoff, yoff - bw, mapw, maph + 2 * bw);
+  dc.DrawRectangle(xoff - bw, yoff, mapw + 2 * bw, maph);
 
   // Set clip region for grid cells and grid.
-  dc.SetClippingRegion(bw, bw, canw - 2 * bw, canh - 2 * bw);
+  dc.SetClippingRegion(xoff, yoff, mapw, maph);
 
   // Fill grid cells.
   // LONGITUDE WRAPAROUND ISSUES...
@@ -251,41 +254,81 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
         int xl = lonToX(iclons[c]), xr = lonToX(iclons[(c+1)%nlon]);
         int yt = max(0, latToY(iclats[r])), yb = min(latToY(iclats[r+1]), canh);
         if (xl <= xr)
-          dc.DrawRectangle(xl, yt, xr-xl, yb-yt);
+          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
         else {
-          dc.DrawRectangle(xl, yt, canw-xl, yb-yt);
-          dc.DrawRectangle(0, yt, xr, yb-yt);
+          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl, yb-yt);
+          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
         }
       }
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
   // Draw grid.
   dc.SetPen(*wxGREY_PEN);
-  for (int i = 0; i < nlon; ++i) {
+  for (int i = 0; i < nlon + 1; ++i) {
     int x = lonToX(iclons[i]);
-    if (x >= 0 && x <= canw) dc.DrawLine(x, 0, x, canh);
+    if (x >= 0 && x <= mapw)
+      dc.DrawLine(xoff + x, yoff, xoff + x, yoff + maph);
   }
   for (int i = 0; i < nlat + 1; ++i) {
     int y = latToY(iclats[i]);
-    if (y >= 0 && y <= canh) dc.DrawLine(0, y, canw, y);
+    if (y >= 0 && y <= maph)
+      dc.DrawLine(xoff, yoff + y, xoff + mapw, yoff + y);
   }
 
-  // Draw axis labels.
+  // Top horizontal axis.
   dc.DestroyClippingRegion();
+  dc.SetClippingRegion(taxis);
+  vector<int> pos(nlon / 4);
+  vector<wxString> labs(nlon / 4);
+  for (int i = 0; i < nlon / 4; ++i) {
+    pos[i] = xoff + lonToX(g->lon((i * 4 - 1 + nlon) % nlon));
+    labs[i].Printf(_("%d"), i * 4 == 0 ? nlon : i * 4);
+  }
+  axisLabels(dc, true, yoff - bw + 2, pos, labs);
 
+  // Bottom horizontal axis.
+  dc.DestroyClippingRegion();
+  dc.SetClippingRegion(baxis);
+  pos.resize(9);
+  labs.resize(9);
+  for (int i = 0; i < 9; ++i) pos[i] = xoff + lonToX(i * 45.0);
+  labs[0] = _("0"); labs[1] = _("45E");  labs[2] = _("90E");
+  labs[3] = _("135E"); labs[4] = _("180"); labs[5] = _("135W");
+  labs[6] = _("90W"); labs[7] = _("45W"); labs[8] = _("0");
+  axisLabels(dc, true, canh - yoff + 2, pos, labs);
+
+  // Left vertical axis.
+  dc.DestroyClippingRegion();
+  dc.SetClippingRegion(laxis);
+  pos.resize(nlat / 4);
+  labs.resize(nlat / 4);
+  for (int i = 0; i < nlat / 4; ++i) {
+    pos[i] = yoff + latToY(g->lat((i + 1) * 4 - 1));
+    labs[i].Printf(_("%d"), (i + 1) * 4);
+  }
+  axisLabels(dc, false, xoff - bw + 2, pos, labs);
+
+  // Right vertical axis.
+  dc.DestroyClippingRegion();
+  dc.SetClippingRegion(raxis);
+  pos.resize(5);
+  labs.resize(5);
+  for (int i = 0; i < 5; ++i) pos[i] = yoff + latToY(60 - i * 30.0);
+  labs[0] = _("60N"); labs[1] = _("30N"); labs[2] = _("0");
+  labs[3] = _("30S"); labs[4] = _("60S");
+  axisLabels(dc, false, canw - xoff + 2, pos, labs);
 
   // Draw borders.
+  dc.DestroyClippingRegion();
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
   dc.SetPen(*wxBLACK_PEN);
-  dc.DrawRectangle(bw, 0, canw - 2 * bw, canh);
-  dc.DrawRectangle(0, bw, canw, canh - 2 * bw);
+  dc.DrawRectangle(xoff, yoff - bw, mapw, maph + bw * 2);
+  dc.DrawRectangle(xoff - bw, yoff, mapw + bw * 2, maph);
 
 #ifdef ISLA_DEBUG
   // Debug overlays.
   if (sizingOverlay) {
     dc.SetFont(*wxSWISS_FONT);
-    wxCoord tw, th;
-    dc.GetTextExtent(_("X"), &tw, &th);
     dc.SetTextForeground(*wxRED);
     int x = 50, y = 30, l = 0;
     wxString txt;
@@ -293,7 +336,9 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     dc.DrawText(txt, x, y + th * l++);
     txt.Printf(_("minDlon=%.2f minDlat=%.2f"), minDlon, minDlat);
     dc.DrawText(txt, x, y + th * l++);
-    txt.Printf(_("w x h = %d x %d"), canw, canh);
+    txt.Printf(_("canw=%d canh=%d"), canw, canh);
+    dc.DrawText(txt, x, y + th * l++);
+    txt.Printf(_("mapw=%d maph=%d"), mapw, maph);
     dc.DrawText(txt, x, y + th * l++);
   }
 #endif
@@ -361,8 +406,63 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     //     DrawCell(cells[m].i, cells[m].j, dc);
 }
 
+void IslaCanvas::axisLabels(wxDC &dc, bool horiz, int yOrX,
+                            const vector<int> &xOrYs,
+                            const vector<wxString> &labs)
+{
+  wxCoord tw, th;
+  for (int i = 0; i < xOrYs.size(); ++i) {
+    dc.GetTextExtent(labs[i], &tw, &th);
+    if (horiz) {
+      dc.DrawText(labs[i], xOrYs[i] - tw / 2, yOrX);
+    } else {
+      dc.DrawRotatedText(labs[i], yOrX, xOrYs[i] + tw / 2, 90.0);
+    }
+  }
+}
+
+void IslaCanvas::Pan(int dx, int dy)
+{
+  double halfh = maph / 2 / scale;
+  clon = fmod(360.0 + clon - dx / scale, 360.0);
+  clat += dy / scale;
+  clat = max(clat, iclats[0] + halfh);
+  clat = min(clat, iclats[iclats.size()-1] - halfh);
+  Refresh();
+}
+
+void IslaCanvas::ZoomIn(void)
+{
+  scale *= 1.25;
+  Refresh();
+}
+
+void IslaCanvas::ZoomOut(void)
+{
+  scale /= 1.25;
+  Refresh();
+}
+
 void IslaCanvas::OnMouse(wxMouseEvent& event)
 {
+  if (!event.LeftIsDown()) { mouse = MOUSE_NOTHING; return; }
+
+  int x = event.GetX(), y = event.GetY();
+
+  if (event.LeftDown()) {
+    // Start a new action.
+    bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
+    bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
+    if (!xpanevent && !ypanevent) { mouse = MOUSE_NOTHING; return; }
+    mousex = x;  mousey = y;
+    if (xpanevent) mouse = MOUSE_PAN_X;
+    else if (ypanevent) mouse = MOUSE_PAN_Y;
+  }
+
+  if (mouse == MOUSE_PAN_X) Pan(x - mousex, 0);
+  else Pan(0, y - mousey);
+  mousex = x;  mousey = y;
+
 //     // which cell are we pointing at?
 //     wxInt32 i = XToCell( event.GetX() );
 //     wxInt32 j = YToCell( event.GetY() );
@@ -374,19 +474,6 @@ void IslaCanvas::OnMouse(wxMouseEvent& event)
 //     // ((IslaFrame *) wxGetApp().GetTopWindow())->SetStatusText(msg, 1);
 // #endif // wxUSE_STATUSBAR
 
-//     // NOTE that wxMouseEvent::LeftDown() and wxMouseEvent::LeftIsDown()
-//     // have different semantics. The first one is used to signal that the
-//     // button was just pressed (i.e., in "button down" events); the second
-//     // one just describes the current status of the button, independently
-//     // of the mouse event type. LeftIsDown is typically used in "mouse
-//     // move" events, to test if the button is _still_ pressed.
-
-//     // is the button down?
-//     if (!event.LeftIsDown())
-//     {
-//         _status = MOUSE_NOACTION;
-//         return;
-//     }
 
 //     // was it pressed just now?
 //     if (event.LeftDown())
@@ -469,8 +556,12 @@ void IslaCanvas::OnMouse(wxMouseEvent& event)
 void IslaCanvas::OnSize(wxSizeEvent &event)
 {
   wxSize sz = event.GetSize();
-  canw = sz.GetWidth();
-  canh = sz.GetHeight();
+  canw = sz.GetWidth();   xoff = (canw - mapw) / 2;
+  canh = sz.GetHeight();  yoff = (canh - maph) / 2;
+  taxis = wxRect(xoff, yoff - bw, mapw, bw);
+  baxis = wxRect(xoff, canh - yoff, mapw, bw);
+  laxis = wxRect(xoff - bw, yoff, bw, maph);
+  raxis = wxRect(canw - xoff, yoff, bw, maph);
   Refresh();
 
     // // find center

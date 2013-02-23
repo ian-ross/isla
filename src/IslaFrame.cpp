@@ -211,6 +211,8 @@ IslaFrame::IslaFrame() :
 
   sizer3->Fit(this);
   sizer3->SetSizeHints(this);
+
+  UpdateUI();
 }
 
 // Enable or disable tools and menu entries according to the current
@@ -218,12 +220,11 @@ IslaFrame::IslaFrame() :
 // way to do this.
 void IslaFrame::UpdateUI()
 {
-  // zooming
-  int cellsize = canvas->GetMinCellSize();
-  GetToolBar()->EnableTool(wxID_ZOOM_IN,  cellsize < 32);
-  GetToolBar()->EnableTool(wxID_ZOOM_OUT, cellsize > 1);
-  GetMenuBar()->Enable(wxID_ZOOM_IN,  cellsize < 32);
-  GetMenuBar()->Enable(wxID_ZOOM_OUT, cellsize > 1);
+  bool outok = canvas->ZoomOutOK(), inok = canvas->ZoomInOK();
+  GetToolBar()->EnableTool(wxID_ZOOM_IN, inok);
+  GetToolBar()->EnableTool(wxID_ZOOM_OUT, outok);
+  GetMenuBar()->Enable(wxID_ZOOM_IN,  inok);
+  GetMenuBar()->Enable(wxID_ZOOM_OUT, outok);
 }
 
 // Event handlers -----------------------------------------------------------
@@ -322,14 +323,11 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
 
 void IslaFrame::OnZoom(wxCommandEvent &e)
 {
-  // int cellsize = canvas->GetCellSize();
-  // if (e.GetId() == wxID_ZOOM_IN && cellsize < 32) {
-  //   canvas->SetCellSize(cellsize * 2);
-  //   UpdateUI();
-  // } else if (e.GetId() == wxID_ZOOM_OUT && cellsize > 1) {
-  //   canvas->SetCellSize(cellsize / 2);
-  //   UpdateUI();
-  // }
+  switch (e.GetId()) {
+  case wxID_ZOOM_IN:  canvas->ZoomIn();  break;
+  case wxID_ZOOM_OUT: canvas->ZoomOut(); break;
+  }
+  UpdateUI();
 }
 
 void IslaFrame::OnClose(wxCloseEvent& WXUNUSED(event))
