@@ -53,6 +53,14 @@ Grid::Grid(int nlat, double lat0, double dlat,
 {
   for (int i = 0; i < nlat; ++i) _lats[i] = lat0 + i * dlat;
   for (int i = 0; i < nlon; ++i) _lons[i] = lon0 + i * dlon;
+  if (_lats[0] > _lats[1]) {
+    reverse(_lats.begin(), _lats.end());
+    _lats_reversed = true;
+  }
+  if (_lons[0] > _lons[1]) {
+    reverse(_lons.begin(), _lons.end());
+    _lons_reversed = true;
+  }
 }
 
 Grid::Grid(const Grid &other) :

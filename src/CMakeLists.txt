@@ -5,6 +5,25 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 SET(CMAKE_BUILD_TYPE Debug)
 ENABLE_TESTING()
 
-ADD_SUBDIRECTORY(lib)
-ADD_SUBDIRECTORY(isla)
+FIND_PACKAGE(Boost REQUIRED)
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+
+SET(NETCDF_CXX "YES")
+FIND_PACKAGE(NetCDF REQUIRED)
+INCLUDE_DIRECTORIES(${NETCDF_INCLUDES})
+
+FIND_PACKAGE(wxWidgets REQUIRED core base)
+INCLUDE(${wxWidgets_USE_FILE})
+
+SET(isla_SRCS isla.cpp
+              game.cpp
+              IslaFrame.cpp
+              IslaModel.cpp
+              IslaCanvas.cpp
+              Dialogues.cpp
+              Grid.cpp)
+ADD_EXECUTABLE(isla ${isla_SRCS})
+TARGET_LINK_LIBRARIES(isla ${wxWidgets_LIBRARIES})
+TARGET_LINK_LIBRARIES(isla ${NETCDF_LIBRARIES})
+
 ADD_SUBDIRECTORY(test)

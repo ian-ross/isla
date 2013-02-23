@@ -6,7 +6,7 @@
 
 #include "wx/log.h"
 #include "wx/module.h"
-#include "game.h"
+#include "game.hh"
 
 #include <string.h>           // for memset
 

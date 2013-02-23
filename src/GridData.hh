@@ -28,6 +28,19 @@ public:
     other.process(*this, fn);
   }
   ~GridData() { }
+  const GridData &operator=(const GridData &other) {
+    if (this != &other) {
+      _g = other._g;
+      _data = other._data;
+      _has_missing = other._has_missing;
+      _missing_val = other._missing_val;
+    }
+    return *this;
+  }
+  const GridData &operator=(T val) {
+    fill(_data.begin(), _data.end(), val);
+    return *this;
+  }
 
   // Access grid.
   GridPtr grid(void) const { return _g; }

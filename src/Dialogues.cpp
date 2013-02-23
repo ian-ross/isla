@@ -1,18 +1,17 @@
-// FILE: dialogs.cpp
-
-// HEADER FILES
+//----------------------------------------------------------------------
+// FILE:   Dialogues.cpp
+// DATE:   23-FEB-2013
+// AUTHOR: Ian Ross
+//
+// Dialogue classes for Isla island editor.
+//----------------------------------------------------------------------
 
 #include "wx/wx.h"
 #include "wx/statline.h"
-#include "wx/minifram.h"
-#include "wx/settings.h"
 
-#include "dialogs.h"
+#include "Dialogues.hh"
 
 #include "bitmaps/isla.xpm"
-
-
-// IslaAboutDialog
 
 IslaAboutDialog::IslaAboutDialog(wxWindow *parent)
   : wxDialog(parent, wxID_ANY, _("About Isla"),

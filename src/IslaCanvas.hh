@@ -1,24 +1,25 @@
-// FILE: isla.h
+//----------------------------------------------------------------------
+// FILE:   IslaCanvas.hh
+// DATE:   23-FEB-2013
+// AUTHOR: Ian Ross
+//
+// Canvas class for main map view of Isla island editor.
+//----------------------------------------------------------------------
 
-#ifndef _ISLA_APP_H_
-#define _ISLA_APP_H_
+#ifndef _H_ISLACANVAS_
+#define _H_ISLACANVAS_
 
 #include "wx/wx.h"
-#include "wx/minifram.h"
 
-#include "game.h"
-
-#include "GridData.hh"
-
-// IslaCanvas
+class IslaModel;
 
 // Note that in IslaCanvas, all cell coordinates are
 // named i, j, while screen coordinates are named x, y.
 
 class IslaCanvas : public wxWindow {
 public:
-  IslaCanvas(wxWindow *parent, Isla *isla, bool interactive = true);
-  virtual ~IslaCanvas();
+  IslaCanvas(wxWindow *parent, IslaModel *m);
+  virtual ~IslaCanvas() { }
 
   // View management
   int  GetCellSize() const { return _cellsize; };
@@ -26,7 +27,7 @@ public:
   void Recenter(wxInt32 i, wxInt32 j);
 
   // Drawing
-  void DrawChanged();
+  void DrawAll();
   void DrawCell(wxInt32 i, wxInt32 j, bool alive);
 
 private:
@@ -53,9 +54,8 @@ private:
     MOUSE_ERASING
   };
 
-  Isla         *_isla;           // Isla object
+  IslaModel *model;              // Isla model.
   int          _cellsize;        // current cell size, in pixels
-  bool         _interactive;     // is this canvas interactive?
   MouseStatus  _status;          // what is the user doing?
   wxInt32      _viewportX;       // first visible cell (x coord)
   wxInt32      _viewportY;       // first visible cell (y coord)
@@ -66,36 +66,4 @@ private:
   wxInt32      _mi, _mj;         // last mouse position
 };
 
-
-// IslaFrame
-
-class IslaFrame : public wxFrame {
-public:
-  IslaFrame();
-  virtual ~IslaFrame() { }
-
-  void UpdateUI();
-
-private:
-  DECLARE_EVENT_TABLE()
-  void OnMenu(wxCommandEvent &e);
-  void OnOpen(wxCommandEvent &e);
-  void OnLoadMask(wxCommandEvent &e);
-  void OnZoom(wxCommandEvent &e);
-  void OnClose(wxCloseEvent &e);
-
-  Isla           *_isla;
-  IslaCanvas     *_canvas;
-  GridPtr        _grid;
-  GridData<bool> *_orig_mask;
-};
-
-
-// IslaApp
-
-class IslaApp : public wxApp {
-public:
-  virtual bool OnInit();
-};
-
-#endif  // _ISLA_APP_H_
+#endif
