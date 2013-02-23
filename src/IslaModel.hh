@@ -22,6 +22,9 @@ public:
   IslaModel();
   ~IslaModel() { }
 
+  // Access grid.
+  GridPtr grid(void) { return gr; }
+
   // Reset to original empty mask.
   void reset(void);
 
@@ -49,7 +52,7 @@ public:
 private:
   std::string maskfile;         // Input mask NetCDF file.
   std::string maskvar;          // Input mask NetCDF variable name.
-  GridPtr grid;                 // Working grid.
+  GridPtr gr;                   // Working grid.
   GridData<bool> orig_mask;     // Original mask data.
   GridData<bool> mask;          // Current mask data.
 

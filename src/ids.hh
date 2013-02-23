@@ -23,7 +23,12 @@ enum {
 
   // Tools menu
   ID_SELECT,
-  ID_EDIT_LANDSEA_MASK
+  ID_EDIT_LANDSEA_MASK,
+
+#ifdef ISLA_DEBUG
+  // Debug menu
+  ID_DEBUG_SIZE_OVERLAY,
+#endif
 };
 
 #endif

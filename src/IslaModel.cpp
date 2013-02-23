@@ -15,7 +15,7 @@ using namespace netCDF;
 
 #include "IslaModel.hh"
 
-const int HADCM3_NLAT = 48, HADCM3_NLON = 37;
+const int HADCM3_NLAT = 37, HADCM3_NLON = 48;
 const double HADCM3_LAT0 = 90.0, HADCM3_LON0 = 0.0;
 const double HADCM3_DLAT = -5.0, HADCM3_DLON = 7.5;
 
@@ -23,13 +23,13 @@ const double HADCM3_DLAT = -5.0, HADCM3_DLON = 7.5;
 // Create a default model: HadCM3 grid, no land.
 
 IslaModel::IslaModel() :
-  grid(new Grid(HADCM3_NLAT, HADCM3_LAT0, HADCM3_DLAT,
-                HADCM3_NLON, HADCM3_LON0, HADCM3_DLON)),
-  orig_mask(grid, false),
+  gr(new Grid(HADCM3_NLAT, HADCM3_LAT0, HADCM3_DLAT,
+              HADCM3_NLON, HADCM3_LON0, HADCM3_DLON)),
+  orig_mask(gr, false),
   mask(orig_mask),              // Unchanged from "original".
   island_threshold(20),         // Reasonable default.
-  landmass(grid, 0),            // All ocean.
-  ismask(grid, 0)               // All ocean.
+  landmass(gr, 0),            // All ocean.
+  ismask(gr, 0)               // All ocean.
 { }
 
 
@@ -45,11 +45,11 @@ void IslaModel::reset(void)
 void IslaModel::LoadMask(std::string file, std::string var)
 {
   NcFile nc(file, NcFile::read);
-  GridPtr new_grid = GridPtr(new Grid(nc));
-  GridData<bool> new_mask(grid, nc, var);
+  GridPtr newgr = GridPtr(new Grid(nc));
+  GridData<bool> new_mask(gr, nc, var);
   maskfile = file;
   maskvar = var;
-  grid = new_grid;
+  gr = newgr;
   orig_mask = new_mask;
   mask = orig_mask;
   recalcAll();
@@ -88,8 +88,8 @@ void IslaModel::setIslandThreshold(int thresh)
 void IslaModel::recalcAll(void)
 {
   cout << "Model recalculation triggered" << endl;
-  landmass = GridData<int>(grid, 0);
-  ismask = GridData<int>(grid, 0);
+  landmass = GridData<int>(gr, 0);
+  ismask = GridData<int>(gr, 0);
 }
 
 

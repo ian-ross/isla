@@ -65,6 +65,9 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
 
   EVT_MENU  (wxID_ABOUT,            IslaFrame::OnMenu)
   EVT_CLOSE (                       IslaFrame::OnClose)
+#ifdef ISLA_DEBUG
+  EVT_MENU  (ID_DEBUG_SIZE_OVERLAY, IslaFrame::OnMenu)
+#endif
 END_EVENT_TABLE()
 
 
@@ -132,6 +135,13 @@ IslaFrame::IslaFrame() :
   menuBar->Append(menuView, _("&View"));
   menuBar->Append(menuTools, _("&Tools"));
   menuBar->Append(menuHelp, _("&Help"));
+#ifdef ISLA_DEBUG
+  wxMenu *menuDebug = new wxMenu(wxMENU_TEAROFF);
+  menuDebug->AppendCheckItem(ID_DEBUG_SIZE_OVERLAY, _("Sizing overlay"),
+                             _("Toggle size overlay"));
+  menuBar->Append(menuDebug, _("Debug"));
+#endif
+
   SetMenuBar(menuBar);
 
   // tool bar
@@ -209,7 +219,7 @@ IslaFrame::IslaFrame() :
 void IslaFrame::UpdateUI()
 {
   // zooming
-  int cellsize = canvas->GetCellSize();
+  int cellsize = canvas->GetMinCellSize();
   GetToolBar()->EnableTool(wxID_ZOOM_IN,  cellsize < 32);
   GetToolBar()->EnableTool(wxID_ZOOM_OUT, cellsize > 1);
   GetMenuBar()->Enable(wxID_ZOOM_IN,  cellsize < 32);
@@ -233,6 +243,12 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
     dialog.ShowModal();
     break;
   }
+#ifdef ISLA_DEBUG
+  case ID_DEBUG_SIZE_OVERLAY:
+    canvas->sizingOverlay = !canvas->sizingOverlay;
+    canvas->Refresh();
+    break;
+#endif
   case wxID_EXIT:
     Close(true);
     break;
@@ -305,14 +321,14 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
 
 void IslaFrame::OnZoom(wxCommandEvent &e)
 {
-  int cellsize = canvas->GetCellSize();
-  if (e.GetId() == wxID_ZOOM_IN && cellsize < 32) {
-    canvas->SetCellSize(cellsize * 2);
-    UpdateUI();
-  } else if (e.GetId() == wxID_ZOOM_OUT && cellsize > 1) {
-    canvas->SetCellSize(cellsize / 2);
-    UpdateUI();
-  }
+  // int cellsize = canvas->GetCellSize();
+  // if (e.GetId() == wxID_ZOOM_IN && cellsize < 32) {
+  //   canvas->SetCellSize(cellsize * 2);
+  //   UpdateUI();
+  // } else if (e.GetId() == wxID_ZOOM_OUT && cellsize > 1) {
+  //   canvas->SetCellSize(cellsize / 2);
+  //   UpdateUI();
+  // }
 }
 
 void IslaFrame::OnClose(wxCloseEvent& WXUNUSED(event))
