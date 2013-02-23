@@ -51,7 +51,7 @@ private:
   void DrawCell(wxInt32 i, wxInt32 j, wxDC &dc);
 
   // Conversion between model (lat/lon) and canvas coordinates.
-  int latToY(double lat) const { return canh / 2 + (lat - clat) * scale; }
+  int latToY(double lat) const { return canh / 2 - (lat - clat) * scale; }
   int lonToX(double lon) const { return canw / 2 + (lon - clon) * scale; }
 
   // Conversion between cell and screen coordinates

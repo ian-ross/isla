@@ -311,6 +311,7 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
     cout << maskvar << endl;
     try {
       model->LoadMask(nc_file, maskvar);
+      canvas->modelReset(model);
     } catch (std::exception &e) {
       cout << "EXCEPTION: " << e.what() << endl;
     }

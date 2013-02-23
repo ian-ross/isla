@@ -46,7 +46,7 @@ void IslaModel::LoadMask(std::string file, std::string var)
 {
   NcFile nc(file, NcFile::read);
   GridPtr newgr = GridPtr(new Grid(nc));
-  GridData<bool> new_mask(gr, nc, var);
+  GridData<bool> new_mask(newgr, nc, var);
   maskfile = file;
   maskvar = var;
   gr = newgr;

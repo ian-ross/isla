@@ -53,6 +53,8 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   // the space required for the axis borders, calculate a mean cell
   // width and height from the grid size, then use this to set the
   // initial window size.
+  // ===> THIS ISN'T QUITE RIGHT: THE CANVAS SIZE IS A LITTLE BIT TOO
+  //      SMALL.  NOT SURE WHY.
   int nomw = 1000;
   int mapw = nomw - 2 * bw;
   int meancellw = mapw / g->nlon();
@@ -228,6 +230,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   // DUMBEST POSSIBLE THING...
 
   GridPtr g = model->grid();
+  int nlon = g->nlon(), nlat = g->nlat();
   wxPaintDC dc(this);
 
   // Clear grid cell and axis areas.
@@ -239,15 +242,30 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   dc.SetClippingRegion(bw, bw, canw - 2 * bw, canh - 2 * bw);
 
   // Fill grid cells.
-
+  // LONGITUDE WRAPAROUND ISSUES...
+  dc.SetBrush(*wxLIGHT_GREY_BRUSH);
+  dc.SetPen(*wxTRANSPARENT_PEN);
+  for (int c = 0; c < nlon; ++c)
+    for (int r = 0; r < nlat; ++r)
+      if (model->maskVal(r, c)) {
+        int xl = lonToX(iclons[c]), xr = lonToX(iclons[(c+1)%nlon]);
+        int yt = max(0, latToY(iclats[r])), yb = min(latToY(iclats[r+1]), canh);
+        if (xl <= xr)
+          dc.DrawRectangle(xl, yt, xr-xl, yb-yt);
+        else {
+          dc.DrawRectangle(xl, yt, canw-xl, yb-yt);
+          dc.DrawRectangle(0, yt, xr, yb-yt);
+        }
+      }
+  dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
   // Draw grid.
   dc.SetPen(*wxGREY_PEN);
-  for (int i = 0; i < g->nlon(); ++i) {
+  for (int i = 0; i < nlon; ++i) {
     int x = lonToX(iclons[i]);
     if (x >= 0 && x <= canw) dc.DrawLine(x, 0, x, canh);
   }
-  for (int i = 0; i < g->nlat() + 1; ++i) {
+  for (int i = 0; i < nlat + 1; ++i) {
     int y = latToY(iclats[i]);
     if (y >= 0 && y <= canh) dc.DrawLine(0, y, canw, y);
   }
