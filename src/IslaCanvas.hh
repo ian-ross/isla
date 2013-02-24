@@ -30,6 +30,11 @@ public:
   void ZoomToFit(void);
   bool ZoomInOK(void) const { return MinCellSize() < 64; }
   bool ZoomOutOK(void) const { return MinCellSize() > 2; }
+  bool Panning(void) const { return panning; }
+  void SetPanning(bool pan) {
+    panning = pan;
+    SetCursor(wxCursor(panning ? wxCURSOR_HAND : wxCURSOR_CROSS));
+  }
 
   // View management
   double GetScale(void) const { return scale; }
@@ -100,6 +105,7 @@ private:
   // Mouse information.
   int mousex, mousey;           // Start coordinates for drags.
   MouseState mouse;             // What are we mousing?
+  bool panning;                 // Is panning enabled?
 
   // Model depedent members.
   IslaModel *model;             // Isla model.

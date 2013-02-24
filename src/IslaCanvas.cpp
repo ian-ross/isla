@@ -75,7 +75,7 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   // UI setup.
   SetSize(wxDefaultCoord, wxDefaultCoord, canw, canh);
   mouse = MOUSE_NOTHING;
-  SetCursor(*wxCROSS_CURSOR);
+  SetCursor(wxCursor(wxCURSOR_CROSS));
   SetBackgroundColour(*wxLIGHT_GREY);
 }
 
@@ -232,18 +232,22 @@ void IslaCanvas::OnMouse(wxMouseEvent& event)
     // Start a new action.
     bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
     bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
-    if (!xpanevent && !ypanevent)
+    if (!xpanevent && !ypanevent && !panning)
       mouse = MOUSE_NOTHING;
     else {
       mousex = x;  mousey = y;
-      mouse = xpanevent ? MOUSE_PAN_X : MOUSE_PAN_Y;
+      if (panning)
+        mouse = MOUSE_PAN_2D;
+      else
+        mouse = xpanevent ? MOUSE_PAN_X : MOUSE_PAN_Y;
     }
   }
 
   switch(mouse) {
   case MOUSE_NOTHING: return;
-  case MOUSE_PAN_X: Pan(x - mousex, 0); break;
-  case MOUSE_PAN_Y: Pan(0, y - mousey); break;
+  case MOUSE_PAN_X:  Pan(x - mousex, 0);          break;
+  case MOUSE_PAN_Y:  Pan(0, y - mousey);          break;
+  case MOUSE_PAN_2D: Pan(x - mousex, y - mousey); break;
   }
   mousex = x;  mousey = y;
 }

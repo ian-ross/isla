@@ -66,12 +66,6 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
 END_EVENT_TABLE()
 
 
-#define ADD_TOOL(id, bmp, tooltip, help) \
-    toolBar->AddTool(id, bmp, wxNullBitmap, false, \
-                     wxDefaultCoord, wxDefaultCoord, \
-                     (wxObject *)NULL, tooltip, help)
-
-
 // --------------------------------------------------------------------------
 //
 //  IslaFrame
@@ -80,17 +74,10 @@ END_EVENT_TABLE()
 IslaFrame::IslaFrame() :
   wxFrame((wxFrame *)NULL, wxID_ANY, _("Isla"), wxDefaultPosition )
 {
-  // Icons and bitmaps.
   SetIcon(wxICON(isla));
-  wxBitmap bitmaps[5];
-  bitmaps[0] = wxBITMAP(zoom_in);
-  bitmaps[1] = wxBITMAP(zoom_out);
-  bitmaps[2] = wxBITMAP(zoom_fit);
-  bitmaps[3] = wxBITMAP(zoom_select);
-  bitmaps[4] = wxBITMAP(pan);
 
   wxMenu *menuFile = new wxMenu(wxMENU_TEAROFF);
-  wxMenu *menuView = new wxMenu(wxMENU_TEAROFF);
+  menuView = new wxMenu(wxMENU_TEAROFF);
   wxMenu *menuTools = new wxMenu(wxMENU_TEAROFF);
   wxMenu *menuHelp = new wxMenu(wxMENU_TEAROFF);
 
@@ -117,12 +104,9 @@ IslaFrame::IslaFrame() :
   wxMenuItem *zoomsel_item =
     new wxMenuItem(menuView, ID_ZOOM_SELECTION, _("Zoom to &selection"),
                    _("Zoom to selection"));
-  zoomsel_item->SetBitmap(bitmaps[3]);
+  zoomsel_item->SetBitmap(wxBITMAP(zoom_select));
   menuView->Append(zoomsel_item);
-  wxMenuItem *pan_item =
-    new wxMenuItem(menuView, ID_PAN, _("&Pan"), _("Pan view"), wxITEM_CHECK);
-  pan_item->SetBitmap(bitmaps[4]);
-  menuView->Append(pan_item);
+  menuView->AppendCheckItem(ID_PAN, _("&Pan"), _("Pan view"));
 
   menuTools->Append(ID_SELECT, _("&Select\tCtrl-S"),
                     _("Select items"));
@@ -146,20 +130,24 @@ IslaFrame::IslaFrame() :
   SetMenuBar(menuBar);
 
   // Tool bar.
-  wxToolBar *toolBar = CreateToolBar();
+  toolBar = CreateToolBar();
   toolBar->SetMargins(5, 5);
   toolBar->SetToolBitmapSize(wxSize(16, 16));
 
-  ADD_TOOL(wxID_ZOOM_IN, bitmaps[0],
-           wxGetStockLabel(wxID_ZOOM_IN, wxSTOCK_NOFLAGS), _("Zoom in"));
-  ADD_TOOL(wxID_ZOOM_OUT, bitmaps[1],
-           wxGetStockLabel(wxID_ZOOM_OUT, wxSTOCK_NOFLAGS), _("Zoom out"));
-  ADD_TOOL(wxID_ZOOM_FIT, bitmaps[2],
-           wxGetStockLabel(wxID_ZOOM_FIT, wxSTOCK_NOFLAGS), _("Zoom to fit"));
-  ADD_TOOL(wxID_ZOOM_FIT, bitmaps[3],
-           _("Zoom to selection"), _("Zoom to selection"));
-  ADD_TOOL(ID_PAN, bitmaps[4],
-           _("Pan view"), _("Pan view"));
+  toolBar->AddTool(wxID_ZOOM_IN,
+                   wxGetStockLabel(wxID_ZOOM_IN, wxSTOCK_NOFLAGS),
+                   wxBITMAP(zoom_in), wxString(_("Zoom in")));
+  toolBar->AddTool(wxID_ZOOM_OUT,
+                   wxGetStockLabel(wxID_ZOOM_OUT, wxSTOCK_NOFLAGS),
+                   wxBITMAP(zoom_out), wxString(_("Zoom out")));
+  toolBar->AddTool(wxID_ZOOM_FIT,
+                   wxGetStockLabel(wxID_ZOOM_FIT, wxSTOCK_NOFLAGS),
+                   wxBITMAP(zoom_fit), wxString(_("Zoom to fit")));
+  toolBar->AddTool(ID_ZOOM_SELECTION,
+                   _("Zoom to selection"),
+                   wxBITMAP(zoom_select), wxString(_("Zoom to selection")));
+  toolBar->AddCheckTool(ID_PAN, _("Pan"),
+                        wxBITMAP(pan), wxNullBitmap, wxString(_("Pan view")));
   toolBar->Realize();
   toolBar->EnableTool(wxID_ZOOM_IN, false);
   toolBar->EnableTool(wxID_ZOOM_OUT, false);
@@ -215,6 +203,8 @@ void IslaFrame::UpdateUI()
   GetToolBar()->EnableTool(wxID_ZOOM_OUT, outok);
   GetMenuBar()->Enable(wxID_ZOOM_IN,  inok);
   GetMenuBar()->Enable(wxID_ZOOM_OUT, outok);
+  toolBar->ToggleTool(ID_PAN, canvas->Panning());
+  menuView->Check(ID_PAN, canvas->Panning());
 }
 
 // Event handlers -----------------------------------------------------------
@@ -303,6 +293,7 @@ void IslaFrame::OnZoom(wxCommandEvent &e)
   case wxID_ZOOM_IN:  canvas->ZoomIn();    break;
   case wxID_ZOOM_OUT: canvas->ZoomOut();   break;
   case wxID_ZOOM_FIT: canvas->ZoomToFit(); break;
+  case ID_PAN: canvas->SetPanning(!canvas->Panning());
   }
   UpdateUI();
 }
