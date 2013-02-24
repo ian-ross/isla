@@ -471,18 +471,20 @@ void IslaCanvas::DoZoomToSelection(int x0, int y0, int x1, int y1)
   x1 -= bw;  x1 = max(0.0, min(static_cast<double>(x1), mapw));
   y0 -= bw;  y1 -= bw;
 
-  // Convert to model (lat/lon) coordinate and limit latitudes to
+  // Convert latitude to model (lat/lon) coordinate and limit to
   // within the acceptable range.
-  double lon0 = XToLon(x0), lat0 = YToLat(y0);
-  double lon1 = XToLon(x1), lat1 = YToLat(y1);
+  double lat0 = YToLat(y0), lat1 = YToLat(y1);
   lat0 = min(max(lat0, iclats[0]), iclats[iclats.size()-1]);
   lat1 = min(max(lat1, iclats[0]), iclats[iclats.size()-1]);
 
-  // Calculate new centre point and scale and redisplay.
-  clon = (lon0 + lon1) / 2;  clat = (lat0 + lat1) / 2;
-  GridPtr g = model->grid();
+  // Calculate new centre point and scale and redisplay.  The
+  // longitude calculation is done in canvas coordinates to avoid
+  // problems with wraparound, and the latitude calculation is done in
+  // model coordinates to take account of the extra half-cell padding
+  // at the top and bottom of the map.
+  clon = XToLon((x0 + x1) / 2);  clat = (lat0 + lat1) / 2;
   double possmapw = canw - 2 * bw, possmaph = canh - 2 * bw;
-  double fitwscale = possmapw / fabs(lon1 - lon0);
+  double fitwscale = possmapw / (fabs(x1 - x0) / scale);
   double fithscale = possmaph / fabs(lat1 - lat0);
   scale = min(fitwscale, fithscale);
   if (MinCellSize() < 2) SetMinCellSize(2);
