@@ -59,8 +59,8 @@ private:
   void DrawCell(wxInt32 i, wxInt32 j, wxDC &dc);
 
   // Conversion between model (lat/lon) and canvas coordinates.
-  int latToY(double lat) const { return maph / 2 - (lat - clat) * scale; }
-  int lonToX(double lon) const {
+  double latToY(double lat) const { return maph / 2 - (lat - clat) * scale; }
+  double lonToX(double lon) const {
     bool right = fmod(lon - clon + 360.0, 360.0) <= 180.0;
     double dlon = right ?
       fmod(lon - clon + 360.0, 360.0) : -fmod(clon - lon + 360.0, 360.0);
@@ -74,9 +74,10 @@ private:
     MOUSE_PAN_2D
   };
 
-  // Window layout parameters.
-  int canw, canh;               // Canvas dimensions.
-  int mapw, maph;               // Map dimensions (i.e. without
+  // Window layout parameters.  Dimensions are stored as exact double
+  // values to avoid rounding problems.
+  double canw, canh;            // Canvas dimensions.
+  double mapw, maph;            // Map dimensions (i.e. without
                                 // borders).
   int xoff, yoff;               // Map offsets within canvas.
   double clat, clon;            // Centre coordinates (lat/lon).

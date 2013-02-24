@@ -59,8 +59,7 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   scale = mapw / 360.0;
   double maplon = 360.0;
   double maplat = 180.0 + g->lat(1) - g->lat(0);
-  double aspect = maplat / maplon;
-  maph = mapw * aspect;
+  maph = maplat * scale;
   canw = mapw + 2 * bw;      canh = maph + 2 * bw;
   xoff = (canw - mapw) / 2;  yoff = (canh - maph) / 2;
   SetSize(wxDefaultCoord, wxDefaultCoord, canw, canh);
@@ -139,7 +138,8 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     for (int r = 0; r < nlat; ++r)
       if (model->maskVal(r, c)) {
         int xl = lonToX(iclons[c]), xr = lonToX(iclons[(c+1)%nlon]);
-        int yt = max(0, latToY(iclats[r])), yb = min(latToY(iclats[r+1]), canh);
+        int yt = max(0.0, latToY(iclats[r]));
+        int yb = min(latToY(iclats[r+1]), canh);
         if (xl <= xr)
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
         else {
@@ -229,68 +229,6 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     dc.DrawText(txt, x, y + th * l++);
   }
 #endif
-
-
-    // wxRect  rect = GetUpdateRegion().GetBox();
-    // wxCoord x, y, w, h;
-    // wxInt32 i0, j0, i1, j1;
-
-    // // find damaged area
-    // x = rect.GetX();
-    // y = rect.GetY();
-    // w = rect.GetWidth();
-    // h = rect.GetHeight();
-
-    // i0 = XToCell(x);
-    // j0 = YToCell(y);
-    // i1 = XToCell(x + w - 1);
-    // j1 = YToCell(y + h - 1);
-
-    // size_t ncells;
-    // IslaCell *cells;
-
-    // // _isla->BeginFind(i0, j0, i1, j1, false);
-    // // bool done = _isla->FindMore(&cells, &ncells);
-    // bool done;
-
-    // // erase all damaged cells and draw the grid
-    // dc.SetBrush(*wxWHITE_BRUSH);
-
-    // if (_cellsize <= 2)
-    // {
-    //    // no grid
-    //    dc.SetPen(*wxWHITE_PEN);
-    //    dc.DrawRectangle(x, y, w, h);
-    // }
-    // else
-    // {
-    //     x = CellToX(i0);
-    //     y = CellToY(j0);
-    //     w = CellToX(i1 + 1) - x + 1;
-    //     h = CellToY(j1 + 1) - y + 1;
-
-    //     dc.SetPen(*wxLIGHT_GREY_PEN);
-    //     for (wxInt32 yy = y; yy <= (y + h - _cellsize); yy += _cellsize)
-    //         dc.DrawRectangle(x, yy, w, _cellsize + 1);
-    //     for (wxInt32 xx = x; xx <= (x + w - _cellsize); xx += _cellsize)
-    //         dc.DrawLine(xx, y, xx, y + h);
-    // }
-
-    // // draw all alive cells
-    // dc.SetPen(*wxBLACK_PEN);
-    // dc.SetBrush(*wxBLACK_BRUSH);
-
-    // while (!done)
-    // {
-    //     for (size_t m = 0; m < ncells; m++)
-    //         DrawCell(cells[m].i, cells[m].j, dc);
-
-    //     // done = _isla->FindMore(&cells, &ncells);
-    // }
-
-    // // last set
-    // for (size_t m = 0; m < ncells; m++)
-    //     DrawCell(cells[m].i, cells[m].j, dc);
 }
 
 void IslaCanvas::axisLabels(wxDC &dc, bool horiz, int yOrX,
@@ -310,11 +248,15 @@ void IslaCanvas::axisLabels(wxDC &dc, bool horiz, int yOrX,
 
 void IslaCanvas::Pan(int dx, int dy)
 {
+  GridPtr g = model->grid();
+  double maplat = maph / scale;
   double halfh = maph / 2 / scale;
+  double clatb = clat;
   clon = fmod(360.0 + clon - dx / scale, 360.0);
   clat += dy / scale;
   clat = max(clat, iclats[0] + halfh);
   clat = min(clat, iclats[iclats.size()-1] - halfh);
+  if (fabs(clat - clatb) * scale < 1) clat = clatb;
   Refresh();
 }
 
@@ -348,12 +290,15 @@ void IslaCanvas::OnMouse(wxMouseEvent& event)
 
 void IslaCanvas::SizeRecalc(void)
 {
-  mapw = min(static_cast<int>(360.0 * scale), canw - bw * 2);
+  mapw = min(360.0 * scale, canw - bw * 2);
   xoff = (canw - mapw) / 2;
   GridPtr g = model->grid();
-  maph = min(static_cast<int>((180.0 + g->lat(1) - g->lat(0)) * scale),
-             canh - bw * 2);
+  double maphb = maph;
+  maph = min((180.0 + g->lat(1) - g->lat(0)) * scale, canh - bw * 2.0);
   yoff = (canh - maph) / 2;
+  double halfh = maph / 2 / scale;
+  clat = max(clat, iclats[0] + halfh);
+  clat = min(clat, iclats[iclats.size()-1] - halfh);
   taxis = wxRect(xoff, yoff - bw, mapw, bw);
   baxis = wxRect(xoff, canh - yoff, mapw, bw);
   laxis = wxRect(xoff - bw, yoff, bw, maph);
