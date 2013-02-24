@@ -27,6 +27,7 @@ public:
   void Pan(int dx, int dy);
   void ZoomIn(void) { ZoomScale(1.25); }
   void ZoomOut(void) { ZoomScale(1.0/1.25); }
+  void ZoomToFit(void);
   bool ZoomInOK(void) const { return MinCellSize() < 64; }
   bool ZoomOutOK(void) const { return MinCellSize() > 2; }
 
@@ -56,6 +57,10 @@ private:
   double MinCellSize(void) const {
     return min(minDlon * scale, minDlat * scale);
   }
+
+  // Set minimum cell size in either direction.
+  void SetMinCellSize(int cs) { scale = cs / min(minDlon, minDlat); }
+
 
   DECLARE_EVENT_TABLE()
   void OnPaint(wxPaintEvent &e);

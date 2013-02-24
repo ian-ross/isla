@@ -31,22 +31,21 @@ using namespace netCDF;
 #include "isla.xpm"
 
 // Bitmap buttons for toolbar
-#include "bitmaps/reset.xpm"
-#include "bitmaps/open.xpm"
-#include "bitmaps/play.xpm"
-#include "bitmaps/stop.xpm"
-#include "bitmaps/zoomin.xpm"
-#include "bitmaps/zoomout.xpm"
-#include "bitmaps/info.xpm"
+#include "bitmaps/zoom-in.xpm"
+#include "bitmaps/zoom-out.xpm"
+#include "bitmaps/zoom-fit.xpm"
+#include "bitmaps/zoom-select.xpm"
+#include "bitmaps/pan.xpm"
 #endif
 
 
 // Event table
 BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
-  EVT_MENU  (ID_LOAD_MASK,          IslaFrame::OnLoadMask)
-  EVT_MENU  (ID_SAVE_MASK,          IslaFrame::OnMenu)
+  EVT_MENU  (wxID_NEW,              IslaFrame::OnMenu)
+  EVT_MENU  (wxID_OPEN,             IslaFrame::OnLoadMask)
+  EVT_MENU  (wxID_SAVEAS,           IslaFrame::OnMenu)
   EVT_MENU  (ID_IMPORT_ISLCMP_DATA, IslaFrame::OnMenu)
-  EVT_MENU  (ID_CLEAR_ISLCMP_DATA, IslaFrame::OnMenu)
+  EVT_MENU  (ID_CLEAR_ISLCMP_DATA,  IslaFrame::OnMenu)
   EVT_MENU  (ID_EXPORT_ISLAND_DATA, IslaFrame::OnMenu)
   EVT_MENU  (wxID_EXIT,             IslaFrame::OnMenu)
 
@@ -81,16 +80,25 @@ END_EVENT_TABLE()
 IslaFrame::IslaFrame() :
   wxFrame((wxFrame *)NULL, wxID_ANY, _("Isla"), wxDefaultPosition )
 {
+  // Icons and bitmaps.
   SetIcon(wxICON(isla));
+  wxBitmap bitmaps[5];
+  bitmaps[0] = wxBITMAP(zoom_in);
+  bitmaps[1] = wxBITMAP(zoom_out);
+  bitmaps[2] = wxBITMAP(zoom_fit);
+  bitmaps[3] = wxBITMAP(zoom_select);
+  bitmaps[4] = wxBITMAP(pan);
 
   wxMenu *menuFile = new wxMenu(wxMENU_TEAROFF);
   wxMenu *menuView = new wxMenu(wxMENU_TEAROFF);
   wxMenu *menuTools = new wxMenu(wxMENU_TEAROFF);
   wxMenu *menuHelp = new wxMenu(wxMENU_TEAROFF);
 
-  menuFile->Append(ID_LOAD_MASK, _("&Load land/sea mask..."),
+  menuFile->Append(wxID_NEW, _("&Clear grid"),
+                   _("Clear land/sea mask and island data"));
+  menuFile->Append(wxID_OPEN, _("&Load land/sea mask..."),
                    _("Load land/sea mask data from a NetCDF file"));
-  menuFile->Append(ID_SAVE_MASK, _("Sa&ve land/sea mask..."),
+  menuFile->Append(wxID_SAVEAS, _("Sa&ve land/sea mask..."),
                    _("Save current land/sea mask data to a NetCDF file"));
   menuFile->AppendSeparator();
   menuFile->Append(ID_IMPORT_ISLCMP_DATA,
@@ -106,9 +114,15 @@ IslaFrame::IslaFrame() :
   menuView->Append(wxID_ZOOM_IN, wxEmptyString, _("Zoom in"));
   menuView->Append(wxID_ZOOM_OUT, wxEmptyString, _("Zoom out"));
   menuView->Append(wxID_ZOOM_FIT, wxEmptyString, _("Zoom to fit"));
-  menuView->Append(ID_ZOOM_SELECTION, _("Zoom to &selection"),
+  wxMenuItem *zoomsel_item =
+    new wxMenuItem(menuView, ID_ZOOM_SELECTION, _("Zoom to &selection"),
                    _("Zoom to selection"));
-  menuView->Append(ID_PAN, _("&Pan"), _("Pan view"));
+  zoomsel_item->SetBitmap(bitmaps[3]);
+  menuView->Append(zoomsel_item);
+  wxMenuItem *pan_item =
+    new wxMenuItem(menuView, ID_PAN, _("&Pan"), _("Pan view"), wxITEM_CHECK);
+  pan_item->SetBitmap(bitmaps[4]);
+  menuView->Append(pan_item);
 
   menuTools->Append(ID_SELECT, _("&Select\tCtrl-S"),
                     _("Select items"));
@@ -131,32 +145,21 @@ IslaFrame::IslaFrame() :
 
   SetMenuBar(menuBar);
 
-  // tool bar
-  wxBitmap tbBitmaps[7];
-
-  tbBitmaps[0] = wxBITMAP(reset);
-  tbBitmaps[1] = wxBITMAP(open);
-  tbBitmaps[2] = wxBITMAP(zoomin);
-  tbBitmaps[3] = wxBITMAP(zoomout);
-  tbBitmaps[4] = wxBITMAP(info);
-  tbBitmaps[5] = wxBITMAP(play);
-  tbBitmaps[6] = wxBITMAP(stop);
-
+  // Tool bar.
   wxToolBar *toolBar = CreateToolBar();
   toolBar->SetMargins(5, 5);
   toolBar->SetToolBitmapSize(wxSize(16, 16));
 
-  ADD_TOOL(wxID_NEW, tbBitmaps[0],
-           wxGetStockLabel(wxID_NEW, wxSTOCK_NOFLAGS),
-           _("Start a new game"));
-  ADD_TOOL(wxID_OPEN, tbBitmaps[1],
-           wxGetStockLabel(wxID_OPEN, wxSTOCK_NOFLAGS),
-           _("Open an existing Isla pattern"));
-  toolBar->AddSeparator();
-  ADD_TOOL(wxID_ZOOM_IN, tbBitmaps[2],
+  ADD_TOOL(wxID_ZOOM_IN, bitmaps[0],
            wxGetStockLabel(wxID_ZOOM_IN, wxSTOCK_NOFLAGS), _("Zoom in"));
-  ADD_TOOL(wxID_ZOOM_OUT, tbBitmaps[3],
+  ADD_TOOL(wxID_ZOOM_OUT, bitmaps[1],
            wxGetStockLabel(wxID_ZOOM_OUT, wxSTOCK_NOFLAGS), _("Zoom out"));
+  ADD_TOOL(wxID_ZOOM_FIT, bitmaps[2],
+           wxGetStockLabel(wxID_ZOOM_FIT, wxSTOCK_NOFLAGS), _("Zoom to fit"));
+  ADD_TOOL(wxID_ZOOM_FIT, bitmaps[3],
+           _("Zoom to selection"), _("Zoom to selection"));
+  ADD_TOOL(ID_PAN, bitmaps[4],
+           _("Pan view"), _("Pan view"));
   toolBar->Realize();
   toolBar->EnableTool(wxID_ZOOM_IN, false);
   toolBar->EnableTool(wxID_ZOOM_OUT, false);
@@ -297,8 +300,9 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
 void IslaFrame::OnZoom(wxCommandEvent &e)
 {
   switch (e.GetId()) {
-  case wxID_ZOOM_IN:  canvas->ZoomIn();  break;
-  case wxID_ZOOM_OUT: canvas->ZoomOut(); break;
+  case wxID_ZOOM_IN:  canvas->ZoomIn();    break;
+  case wxID_ZOOM_OUT: canvas->ZoomOut();   break;
+  case wxID_ZOOM_FIT: canvas->ZoomToFit(); break;
   }
   UpdateUI();
 }

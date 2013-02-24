@@ -380,10 +380,22 @@ void IslaCanvas::Pan(int dx, int dy)
 void IslaCanvas::ZoomScale(double zfac)
 {
   scale *= zfac;
+  if (MinCellSize() < 2) SetMinCellSize(2);
+  if (MinCellSize() > 64) SetMinCellSize(64);
   SizeRecalc();
   Refresh();
 }
 
+void IslaCanvas::ZoomToFit(void)
+{
+  GridPtr g = model->grid();
+  double possmapw = canw - 2 * bw, possmaph = canh - 2 * bw;
+  double fitwscale = possmapw / 360.0;
+  double fithscale = possmaph / (180.0 + g->lat(1) - g->lat(0));
+  scale = min(fitwscale, fithscale);
+  SizeRecalc();
+  Refresh();
+}
 
 // Recalculate scaling information for canvas after resize, zoom, or
 // other event.
