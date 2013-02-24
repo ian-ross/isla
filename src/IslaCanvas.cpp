@@ -142,6 +142,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     loni1 = g->lon((ilon0 + 1) % nlon);
   }
   while (g->lat(ilat0) < lat0) ++ilat0;
+  ilat0 = ilat0 > 0 ? ilat0 - 1 : ilat0;
   wxPaintDC dc(this);
 
   // Clear grid cell and axis areas.
@@ -260,72 +261,100 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 //  * Dragging anywhere in the canvas while "zoom to selection" is
 //    active: rubberbands zoom box then triggers zoom when done.
 
-void IslaCanvas::OnMouse(wxMouseEvent& event)
+void IslaCanvas::ProcessPan(wxMouseEvent &event, bool xpan, bool ypan)
 {
   int x = event.GetX(), y = event.GetY();
-  bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
-  bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
-  if (event.GetEventType() == wxEVT_MOUSEWHEEL) {
-    if (xpanevent)
-      Pan(0.25 * event.GetWheelRotation(), 0);
+  if (event.LeftDown()) {
+    // Start a new action.
+    mousex = x;  mousey = y;
+    if (panning && !xpan && !ypan)
+      mouse = MOUSE_PAN_2D;
     else
-      Pan(0, 0.25 * event.GetWheelRotation());
+      mouse = xpan ? MOUSE_PAN_X : MOUSE_PAN_Y;
+  } else if (!event.LeftIsDown()) {
+    mouse = MOUSE_NOTHING;
+    return;
   } else {
-    if (!event.LeftIsDown() && !zoom_selection) {
-      mouse = MOUSE_NOTHING;
-      return;
-    }
-    if (event.LeftDown()) {
-      // Start a new action.
-      if (!xpanevent && !ypanevent && !panning && !zoom_selection)
-        mouse = MOUSE_NOTHING;
-      else {
-        mousex = x;  mousey = y;
-        if (zoom_selection) {
-          zoom_x0 = x;
-          zoom_y0 = y;
-          mouse = MOUSE_ZOOM_SELECTION;
-        } else if (panning)
-          mouse = MOUSE_PAN_2D;
-        else
-          mouse = xpanevent ? MOUSE_PAN_X : MOUSE_PAN_Y;
-      }
-    }
     switch(mouse) {
     case MOUSE_NOTHING: return;
     case MOUSE_PAN_X:  Pan(x - mousex, 0);          break;
     case MOUSE_PAN_Y:  Pan(0, y - mousey);          break;
     case MOUSE_PAN_2D: Pan(x - mousex, y - mousey); break;
-    case MOUSE_ZOOM_SELECTION: {
-      wxPaintDC dc(this);
-      wxPen pen(*wxBLACK, 2, wxLONG_DASH);
-      dc.SetLogicalFunction(wxINVERT);
-      dc.SetPen(pen);
-      dc.SetBrush(*wxTRANSPARENT_BRUSH);
-      if (!event.LeftDown()) {
-        // Erase rubber band rectangle if this isn't the start of a
-        // new drag.
-        int l = min(zoom_x0, mousex), t = min(zoom_y0, mousey);
-        int w = abs(zoom_x0 - mousex), h = abs(zoom_y0 - mousey);
-        dc.DrawRectangle(l, t, w, h);
-      }
-      if (!event.LeftIsDown()) {
-        // Zoom selection complete.
-        zoom_selection = false;
-        mouse = MOUSE_NOTHING;
-        SetCursor(wxCursor(wxCURSOR_ARROW));
-        DoZoomToSelection(zoom_x0, zoom_y0, x, y);
-      } else {
-        // Draw rubber band rectangle.
-        int l = min(zoom_x0, x), t = min(zoom_y0, y);
-        int w = abs(zoom_x0 - x), h = abs(zoom_y0 - y);
-        dc.DrawRectangle(l, t, w, h);
-      }
-      break;
     }
-    }
+  }
+  mousex = x;  mousey = y;
+}
+
+void IslaCanvas::ProcessZoomSelection(wxMouseEvent &event)
+{
+  if (!event.LeftDown() && mouse == MOUSE_NOTHING) return;
+  int x = event.GetX(), y = event.GetY();
+  wxPaintDC dc(this);
+  wxPen pen(*wxBLACK, 2, wxLONG_DASH);
+  dc.SetLogicalFunction(wxINVERT);
+  dc.SetPen(pen);
+  dc.SetBrush(*wxTRANSPARENT_BRUSH);
+  if (event.LeftDown()) {
+    // Start a new action.
+    zoom_x0 = x;  zoom_y0 = y;
+    mouse = MOUSE_ZOOM_SELECTION;
+  } else {
+    // Erase rubber band rectangle if this isn't the start of a
+    // new drag.
+    int l = min(mousex, zoom_x0), t = min(mousey, zoom_y0);
+    int w = abs(zoom_x0 - mousex), h = abs(zoom_y0 - mousey);
+    dc.DrawRectangle(l, t, w, h);
+  }
+  if (!event.LeftIsDown()) {
+    // Zoom selection complete.
+    zoom_selection = false;
+    mouse = MOUSE_NOTHING;
+    SetCursor(wxCursor(wxCURSOR_ARROW));
+    DoZoomToSelection(zoom_x0, zoom_y0, x, y);
+  } else {
+    // Draw rubber band rectangle.
+    int l = min(zoom_x0, x), t = min(zoom_y0, y);
+    int w = abs(zoom_x0 - x), h = abs(zoom_y0 - y);
+    dc.DrawRectangle(l, t, w, h);
     mousex = x;  mousey = y;
   }
+}
+
+void IslaCanvas::ProcessEdit(wxMouseEvent &event)
+{
+  int x = event.GetX(), y = event.GetY();
+  if (x < bw || x > canw - bw || y < bw || y > canh - bw) return;
+  if (event.LeftDown()) {
+    double edlon = XToLon(x - bw), edlat = YToLat(y - bw);
+    edcol = lonToCol(edlon);
+    edrow = latToRow(edlat);
+    model->SetMask(edrow, edcol, !model->maskVal(edrow, edcol));
+    edval = model->maskVal(edrow, edcol);
+    mouse = MOUSE_EDIT;
+    Refresh();
+  } else if (event.LeftIsDown() && mouse == MOUSE_EDIT) {
+    double edlon = XToLon(x - bw), edlat = YToLat(y - bw);
+    int newedcol = lonToCol(edlon), newedrow = latToRow(edlat);
+    if (newedcol != edcol || newedrow != edrow) {
+      edcol = newedcol;  edrow = newedrow;
+      model->SetMask(edrow, edcol, edval);
+      Refresh();
+    }
+  } else { mouse = MOUSE_NOTHING;  return; }
+}
+
+void IslaCanvas::OnMouse(wxMouseEvent &event)
+{
+  int x = event.GetX(), y = event.GetY();
+  bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
+  bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
+  if (event.GetEventType() == wxEVT_MOUSEWHEEL) {
+    if (xpanevent) Pan(0.25 * event.GetWheelRotation(), 0);
+    else           Pan(0, 0.25 * event.GetWheelRotation());
+  } else if (xpanevent || ypanevent || panning)
+    ProcessPan(event, xpanevent, ypanevent);
+  else if (zoom_selection) ProcessZoomSelection(event);
+  else if (edit)           ProcessEdit(event);
 }
 
 
@@ -434,6 +463,26 @@ void IslaCanvas::axisLabels(wxDC &dc, bool horiz, int yOrX,
       dc.DrawRotatedText(labs[i], yOrX, xOrYs[i] + tw / 2, 90.0);
     }
   }
+}
+
+
+// Find cell coordinates.
+
+int IslaCanvas::lonToCol(double lon)
+{
+  lon = fmod(360.0 + lon, 360.0);
+  int n = model->grid()->nlon();
+  if (lon >= iclons[n]) return 0;
+  for (int i = 0; i < n; ++i)
+    if (lon >= iclons[i] && lon < iclons[i+1])
+      return i;
+  return -1;
+}
+int IslaCanvas::latToRow(double lat)
+{
+  for (int i = 0; i < iclats.size() - 1; ++i)
+    if (iclats[i] <= lat && lat < iclats[i + 1]) return i;
+  return -1;
 }
 
 

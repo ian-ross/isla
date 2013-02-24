@@ -30,7 +30,7 @@ public:
   void ZoomToFit(void);
   void ZoomToSelection(void) {
     zoom_selection = true;
-    panning = false;
+    panning = edit = false;
     SetCursor(wxCursor(wxCURSOR_CROSS));
   }
   bool ZoomInOK(void) const { return MinCellSize() < 64; }
@@ -40,6 +40,15 @@ public:
     panning = pan;
     zoom_selection = false;
     SetCursor(wxCursor(panning ? wxCURSOR_HAND : wxCURSOR_ARROW));
+  }
+  void SetSelect() {
+    panning = zoom_selection = edit = false;
+    SetCursor(wxCursor(wxCURSOR_ARROW));
+  }
+  void SetEdit() {
+    panning = zoom_selection = false;
+    edit = true;
+    SetCursor(wxCursor(wxCURSOR_PENCIL));
   }
 
   // View management
@@ -65,6 +74,10 @@ private:
   // Do zoom to selection.
   void DoZoomToSelection(int x0, int y0, int x1, int y1);
 
+  void ProcessPan(wxMouseEvent &event, bool xpan, bool ypan);
+  void ProcessZoomSelection(wxMouseEvent &event);
+  void ProcessEdit(wxMouseEvent &event);
+
   // Axis position and label calculation.
   void SetupAxes(bool dox = true, bool doy = true);
 
@@ -83,9 +96,6 @@ private:
   void OnSize(wxSizeEvent &e);
   void OnEraseBackground(wxEraseEvent &e) { }
 
-  // Draw a cell (parametrized by DC)
-  void DrawCell(wxInt32 i, wxInt32 j, wxDC &dc);
-
   // Conversion from model (lat/lon) to canvas coordinates.
   double latToY(double lat) const { return maph / 2 - (lat - clat) * scale; }
   double lonToX(double lon) const {
@@ -101,12 +111,17 @@ private:
     return fmod(360.0 + clon + (x - mapw / 2) / scale, 360.0);
   }
 
+  // Find cell indices from longitude and latitude.
+  int lonToCol(double lon);
+  int latToRow(double lat);
+
   enum MouseState {
     MOUSE_NOTHING,
     MOUSE_PAN_X,
     MOUSE_PAN_Y,
     MOUSE_PAN_2D,
-    MOUSE_ZOOM_SELECTION
+    MOUSE_ZOOM_SELECTION,
+    MOUSE_EDIT
   };
 
   // Window layout parameters.  Dimensions are stored as exact double
@@ -125,8 +140,11 @@ private:
   bool panning;                 // Is panning enabled?
   bool zoom_selection;          // Zoom to selection enabled?
   int zoom_x0, zoom_y0;         // Zoom selection start coordinates.
+  bool edit;                    // Are we in edit mode?
+  int edcol, edrow;             // Edit coordinates.
+  bool edval;                   // Value for drag edits.
 
-  // Model depedent members.
+  // Model dependent members.
   IslaModel *model;             // Isla model.
   std::vector<double> iclats;   // Inter-cell latitude values.
   std::vector<double> iclons;   // Inter-cell longitude values.

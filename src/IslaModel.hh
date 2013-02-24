@@ -36,6 +36,9 @@ public:
   bool origMaskVal(int r, int c) { return orig_mask(r, c); }
   int landMass(int r, int c) { return landmass(r, c); }
 
+  // Change data values.
+  void SetMask(int r, int c, bool val) { mask(r, c) = val; }
+
   // Check for changes in grid or islands from the values generated
   // from the originally loaded mask data.  These are used as
   // indicators that there are changes that might need to be saved
@@ -63,6 +66,7 @@ private:
 
   int island_threshold;         // Maximum land mass size for an island.
   GridData<int> landmass;       // Land mass index for current mask.
+  std::vector<int> lmsizes;     // Land mass sizes.
   GridData<int> ismask;         // UM ISMASK for current mask.
 };
 

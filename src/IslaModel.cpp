@@ -35,6 +35,7 @@ IslaModel::IslaModel() :
 
 
 // Reset to original empty mask.
+
 void IslaModel::reset(void)
 {
   *this = IslaModel();
@@ -129,6 +130,12 @@ void IslaModel::calcLandMasses(void)
       if (!mask(r, c)) { landmass(r, c) = 0; continue; }
       floodFill(landmass, r, c, region++, -1, mask);
     }
+  lmsizes.resize(region);
+  for (int r = 0; r < gr->nlat(); ++r)
+    for (int c = 0; c < gr->nlon(); ++c)
+      if (landmass(r, c) >= 0) ++lmsizes[landmass(r, c)];
+  for (int i = 0; i < region; ++i)
+    cout << "Region " << i << ": " << lmsizes[i] << " points" << endl;
 }
 
 

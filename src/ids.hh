@@ -21,7 +21,7 @@ enum {
 
   // Tools menu
   ID_SELECT,
-  ID_EDIT_LANDSEA_MASK,
+  ID_EDIT_MASK,
 
 #ifdef ISLA_DEBUG
   // Debug menu

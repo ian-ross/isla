@@ -56,7 +56,7 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (ID_PAN,                IslaFrame::OnZoom)
 
   EVT_MENU  (ID_SELECT,             IslaFrame::OnMenu)
-  EVT_MENU  (ID_EDIT_LANDSEA_MASK,  IslaFrame::OnMenu)
+  EVT_MENU  (ID_EDIT_MASK,          IslaFrame::OnMenu)
 
   EVT_MENU  (wxID_ABOUT,            IslaFrame::OnMenu)
   EVT_CLOSE (                       IslaFrame::OnClose)
@@ -111,7 +111,7 @@ IslaFrame::IslaFrame() :
 
   menuTools->Append(ID_SELECT, _("&Select\tCtrl-S"),
                     _("Select items"));
-  menuTools->Append(ID_EDIT_LANDSEA_MASK, _("&Edit land/sea mask\tCtrl-E"),
+  menuTools->Append(ID_EDIT_MASK, _("&Edit land/sea mask\tCtrl-E"),
                     _("Edit land/sea mask by toggling state of cells"));
 
   menuHelp->Append(wxID_ABOUT, _("&About\tCtrl-A"), _("Show about dialogue"));
@@ -219,11 +219,20 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
   case wxID_NEW: {
     // stop if it was running
     model->reset();
+    canvas->modelReset(model);
     break;
   }
   case wxID_ABOUT: {
     IslaAboutDialog dialog(this);
     dialog.ShowModal();
+    break;
+  }
+  case ID_SELECT: {
+    canvas->SetSelect();
+    break;
+  }
+  case ID_EDIT_MASK: {
+    canvas->SetEdit();
     break;
   }
 #ifdef ISLA_DEBUG
