@@ -43,10 +43,6 @@ using namespace netCDF;
 
 // Event table
 BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
-  EVT_MENU  (wxID_NEW,              IslaFrame::OnMenu)
-  EVT_MENU  (wxID_OPEN,             IslaFrame::OnOpen)
-  EVT_MENU  (wxID_SAVE,             IslaFrame::OnMenu)
-  EVT_MENU  (wxID_SAVEAS,           IslaFrame::OnMenu)
   EVT_MENU  (ID_LOAD_MASK,          IslaFrame::OnLoadMask)
   EVT_MENU  (ID_SAVE_MASK,          IslaFrame::OnMenu)
   EVT_MENU  (ID_IMPORT_ISLCMP_DATA, IslaFrame::OnMenu)
@@ -92,15 +88,6 @@ IslaFrame::IslaFrame() :
   wxMenu *menuTools = new wxMenu(wxMENU_TEAROFF);
   wxMenu *menuHelp = new wxMenu(wxMENU_TEAROFF);
 
-  menuFile->Append(wxID_NEW, _("&New project"),
-                   _("Start a new Isla project"));
-  menuFile->Append(wxID_OPEN, _("&Open project..."),
-                   _("Open an existing Isla project"));
-  menuFile->Append(wxID_SAVE, _("&Save project"),
-                   _("Save current project"));
-  menuFile->Append(wxID_SAVEAS, _("Save project &as..."),
-                   _("Save current project under a different name"));
-  menuFile->AppendSeparator();
   menuFile->Append(ID_LOAD_MASK, _("&Load land/sea mask..."),
                    _("Load land/sea mask data from a NetCDF file"));
   menuFile->Append(ID_SAVE_MASK, _("Sa&ve land/sea mask..."),
@@ -255,20 +242,6 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
   }
 }
 
-void IslaFrame::OnOpen(wxCommandEvent &WXUNUSED(e))
-{
-  wxFileDialog filedlg(this,
-                       _("Choose a file to open"),
-                       wxEmptyString,
-                       wxEmptyString,
-                       _("Isla patterns (*.lif)|*.lif|All files (*.*)|*.*"),
-                       wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-
-  if (filedlg.ShowModal() == wxID_OK) {
-    wxFileInputStream stream(filedlg.GetPath());
-  }
-}
-
 void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
 {
   wxFileDialog filedlg(this,
@@ -307,12 +280,13 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
     cout << "EXCEPTION: " << e.what() << endl;
   }
   if (maskvar != "") {
-    cout << nc_file << endl;
-    cout << maskvar << endl;
     try {
       model->LoadMask(nc_file, maskvar);
       canvas->modelReset(model);
     } catch (std::exception &e) {
+      wxMessageDialog msg(this, _("Failed to read mask data from NetCDF file"),
+                          _("NetCDF error"), wxICON_ERROR);
+      msg.ShowModal();
       cout << "EXCEPTION: " << e.what() << endl;
     }
   }
@@ -327,13 +301,4 @@ void IslaFrame::OnZoom(wxCommandEvent &e)
   case wxID_ZOOM_OUT: canvas->ZoomOut(); break;
   }
   UpdateUI();
-}
-
-void IslaFrame::OnClose(wxCloseEvent& WXUNUSED(event))
-{
-    // Stop if it was running; this is absolutely needed because
-    // the frame won't be actually destroyed until there are no
-    // more pending events, and this in turn won't ever happen
-    // if the timer is running faster than the window can redraw.
-    Destroy();
 }

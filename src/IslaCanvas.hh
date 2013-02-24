@@ -28,7 +28,7 @@ public:
   void ZoomIn(void) { ZoomScale(1.25); }
   void ZoomOut(void) { ZoomScale(1.0/1.25); }
   bool ZoomInOK(void) const { return MinCellSize() < 64; }
-  bool ZoomOutOK(void) const { return MinCellSize() > 8; }
+  bool ZoomOutOK(void) const { return MinCellSize() > 2; }
 
   // View management
   double GetScale(void) const { return scale; }
@@ -48,6 +48,9 @@ private:
 
   void ZoomScale(double zfac);  // Rescale.
   void SizeRecalc(void);        // Recalculate sizing information.
+
+  // Axis position and label calculation.
+  void SetupAxes(bool dox = true, bool doy = true);
 
   // Find minimum cell size in either direction.
   double MinCellSize(void) const {
@@ -105,8 +108,18 @@ private:
 
   int bw;                       // Width (px) of axis borders.
                                 // Calculated from font size used to
-                                // diaplay cell and lat/lon axis
+                                // display cell and lat/lon axis
                                 // labels.
+  int boff;                     // Text offset for axis borders.
+  int celllablimit;             // Maximum label width for axis
+                                // borders, calculated as the text
+                                // extent for the string "888".
+
+  // Current axis label positions and text.
+  std::vector<int> laxpos;  std::vector<wxString> laxlab;
+  std::vector<int> raxpos;  std::vector<wxString> raxlab;
+  std::vector<int> taxpos;  std::vector<wxString> taxlab;
+  std::vector<int> baxpos;  std::vector<wxString> baxlab;
 };
 
 #endif

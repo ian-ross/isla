@@ -27,7 +27,7 @@ private:
   void OnOpen(wxCommandEvent &e);
   void OnLoadMask(wxCommandEvent &e);
   void OnZoom(wxCommandEvent &e);
-  void OnClose(wxCloseEvent &e);
+  void OnClose(wxCloseEvent &e) { Destroy(); }
 
   IslaModel *model;
   IslaCanvas *canvas;
