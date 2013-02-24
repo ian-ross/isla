@@ -28,12 +28,18 @@ public:
   void ZoomIn(void) { ZoomScale(1.25); }
   void ZoomOut(void) { ZoomScale(1.0/1.25); }
   void ZoomToFit(void);
+  void ZoomToSelection(void) {
+    zoom_selection = true;
+    panning = false;
+    SetCursor(wxCursor(wxCURSOR_CROSS));
+  }
   bool ZoomInOK(void) const { return MinCellSize() < 64; }
   bool ZoomOutOK(void) const { return MinCellSize() > 2; }
   bool Panning(void) const { return panning; }
   void SetPanning(bool pan) {
     panning = pan;
-    SetCursor(wxCursor(panning ? wxCURSOR_HAND : wxCURSOR_CROSS));
+    zoom_selection = false;
+    SetCursor(wxCursor(panning ? wxCURSOR_HAND : wxCURSOR_ARROW));
   }
 
   // View management
@@ -54,6 +60,9 @@ private:
 
   void ZoomScale(double zfac);  // Rescale.
   void SizeRecalc(void);        // Recalculate sizing information.
+
+  // Do zoom to selection.
+  void DoZoomToSelection(int x0, int y0, int x1, int y1);
 
   // Axis position and label calculation.
   void SetupAxes(bool dox = true, bool doy = true);
@@ -76,7 +85,7 @@ private:
   // Draw a cell (parametrized by DC)
   void DrawCell(wxInt32 i, wxInt32 j, wxDC &dc);
 
-  // Conversion between model (lat/lon) and canvas coordinates.
+  // Conversion from model (lat/lon) to canvas coordinates.
   double latToY(double lat) const { return maph / 2 - (lat - clat) * scale; }
   double lonToX(double lon) const {
     bool right = fmod(lon - clon + 360.0, 360.0) <= 180.0;
@@ -85,11 +94,18 @@ private:
     return mapw / 2 + dlon * scale;
   }
 
+  // Conversion from canvas to model (lat/lon) coordinates.
+  double YToLat(double y) const { return clat - (y - maph / 2) / scale; }
+  double XToLon(double x) const {
+    return fmod(360.0 + clon + (x - mapw / 2) / scale, 360.0);
+  }
+
   enum MouseState {
     MOUSE_NOTHING,
     MOUSE_PAN_X,
     MOUSE_PAN_Y,
-    MOUSE_PAN_2D
+    MOUSE_PAN_2D,
+    MOUSE_ZOOM_SELECTION
   };
 
   // Window layout parameters.  Dimensions are stored as exact double
@@ -106,6 +122,8 @@ private:
   int mousex, mousey;           // Start coordinates for drags.
   MouseState mouse;             // What are we mousing?
   bool panning;                 // Is panning enabled?
+  bool zoom_selection;          // Zoom to selection enabled?
+  int zoom_x0, zoom_y0;         // Zoom selection start coordinates.
 
   // Model depedent members.
   IslaModel *model;             // Isla model.

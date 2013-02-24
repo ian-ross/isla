@@ -290,9 +290,10 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
 void IslaFrame::OnZoom(wxCommandEvent &e)
 {
   switch (e.GetId()) {
-  case wxID_ZOOM_IN:  canvas->ZoomIn();    break;
-  case wxID_ZOOM_OUT: canvas->ZoomOut();   break;
-  case wxID_ZOOM_FIT: canvas->ZoomToFit(); break;
+  case wxID_ZOOM_IN:  canvas->ZoomIn();               break;
+  case wxID_ZOOM_OUT: canvas->ZoomOut();              break;
+  case wxID_ZOOM_FIT: canvas->ZoomToFit();            break;
+  case ID_ZOOM_SELECTION: canvas->ZoomToSelection();  break;
   case ID_PAN: canvas->SetPanning(!canvas->Panning());
   }
   UpdateUI();

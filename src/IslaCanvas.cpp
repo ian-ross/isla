@@ -75,7 +75,7 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   // UI setup.
   SetSize(wxDefaultCoord, wxDefaultCoord, canw, canh);
   mouse = MOUSE_NOTHING;
-  SetCursor(wxCursor(wxCURSOR_CROSS));
+  SetCursor(wxCursor(wxCURSOR_ARROW));
   SetBackgroundColour(*wxLIGHT_GREY);
 }
 
@@ -233,14 +233,21 @@ void IslaCanvas::OnMouse(wxMouseEvent& event)
     else
       Pan(0, 0.25 * event.GetWheelRotation());
   } else {
-    if (!event.LeftIsDown()) { mouse = MOUSE_NOTHING; return; }
+    if (!event.LeftIsDown() && !zoom_selection) {
+      mouse = MOUSE_NOTHING;
+      return;
+    }
     if (event.LeftDown()) {
       // Start a new action.
-      if (!xpanevent && !ypanevent && !panning)
+      if (!xpanevent && !ypanevent && !panning && !zoom_selection)
         mouse = MOUSE_NOTHING;
       else {
         mousex = x;  mousey = y;
-        if (panning)
+        if (zoom_selection) {
+          zoom_x0 = x;
+          zoom_y0 = y;
+          mouse = MOUSE_ZOOM_SELECTION;
+        } else if (panning)
           mouse = MOUSE_PAN_2D;
         else
           mouse = xpanevent ? MOUSE_PAN_X : MOUSE_PAN_Y;
@@ -251,6 +258,33 @@ void IslaCanvas::OnMouse(wxMouseEvent& event)
     case MOUSE_PAN_X:  Pan(x - mousex, 0);          break;
     case MOUSE_PAN_Y:  Pan(0, y - mousey);          break;
     case MOUSE_PAN_2D: Pan(x - mousex, y - mousey); break;
+    case MOUSE_ZOOM_SELECTION: {
+      wxPaintDC dc(this);
+      wxPen pen(*wxBLACK, 2, wxLONG_DASH);
+      dc.SetLogicalFunction(wxINVERT);
+      dc.SetPen(pen);
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      if (!event.LeftDown()) {
+        // Erase rubber band rectangle if this isn't the start of a
+        // new drag.
+        int l = min(zoom_x0, mousex), t = min(zoom_y0, mousey);
+        int w = abs(zoom_x0 - mousex), h = abs(zoom_y0 - mousey);
+        dc.DrawRectangle(l, t, w, h);
+      }
+      if (!event.LeftIsDown()) {
+        // Zoom selection complete.
+        zoom_selection = false;
+        mouse = MOUSE_NOTHING;
+        SetCursor(wxCursor(wxCURSOR_ARROW));
+        DoZoomToSelection(zoom_x0, zoom_y0, x, y);
+      } else {
+        // Draw rubber band rectangle.
+        int l = min(zoom_x0, x), t = min(zoom_y0, y);
+        int w = abs(zoom_x0 - x), h = abs(zoom_y0 - y);
+        dc.DrawRectangle(l, t, w, h);
+      }
+      break;
+    }
     }
     mousex = x;  mousey = y;
   }
@@ -401,6 +435,36 @@ void IslaCanvas::ZoomToFit(void)
   double fitwscale = possmapw / 360.0;
   double fithscale = possmaph / (180.0 + g->lat(1) - g->lat(0));
   scale = min(fitwscale, fithscale);
+  SizeRecalc();
+  Refresh();
+}
+
+
+// Zoom to a given x,y rectangle (in canvas coordinates).
+
+void IslaCanvas::DoZoomToSelection(int x0, int y0, int x1, int y1)
+{
+  // Adjust for border offsets and limit longitude to within canvas.
+  x0 -= bw;  x0 = max(0.0, min(static_cast<double>(x0), mapw));
+  x1 -= bw;  x1 = max(0.0, min(static_cast<double>(x1), mapw));
+  y0 -= bw;  y1 -= bw;
+
+  // Convert to model (lat/lon) coordinate and limit latitudes to
+  // within the acceptable range.
+  double lon0 = XToLon(x0), lat0 = YToLat(y0);
+  double lon1 = XToLon(x1), lat1 = YToLat(y1);
+  lat0 = min(max(lat0, iclats[0]), iclats[iclats.size()-1]);
+  lat1 = min(max(lat1, iclats[0]), iclats[iclats.size()-1]);
+
+  // Calculate new centre point and scale and redisplay.
+  clon = (lon0 + lon1) / 2;  clat = (lat0 + lat1) / 2;
+  GridPtr g = model->grid();
+  double possmapw = canw - 2 * bw, possmaph = canh - 2 * bw;
+  double fitwscale = possmapw / fabs(lon1 - lon0);
+  double fithscale = possmaph / fabs(lat1 - lat0);
+  scale = min(fitwscale, fithscale);
+  if (MinCellSize() < 2) SetMinCellSize(2);
+  if (MinCellSize() > 64) SetMinCellSize(64);
   SizeRecalc();
   Refresh();
 }
