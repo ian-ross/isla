@@ -61,7 +61,8 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (wxID_ABOUT,            IslaFrame::OnMenu)
   EVT_CLOSE (                       IslaFrame::OnClose)
 #ifdef ISLA_DEBUG
-  EVT_MENU  (ID_DEBUG_SIZE_OVERLAY, IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_SIZE_OVERLAY,   IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_REGION_OVERLAY, IslaFrame::OnMenu)
 #endif
 END_EVENT_TABLE()
 
@@ -124,6 +125,8 @@ IslaFrame::IslaFrame() :
   wxMenu *menuDebug = new wxMenu(wxMENU_TEAROFF);
   menuDebug->AppendCheckItem(ID_DEBUG_SIZE_OVERLAY, _("Sizing overlay"),
                              _("Toggle size overlay"));
+  menuDebug->AppendCheckItem(ID_DEBUG_REGION_OVERLAY, _("Region overlay"),
+                             _("Toggle region overlay"));
   menuBar->Append(menuDebug, _("Debug"));
 #endif
 
@@ -226,6 +229,10 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
 #ifdef ISLA_DEBUG
   case ID_DEBUG_SIZE_OVERLAY:
     canvas->sizingOverlay = !canvas->sizingOverlay;
+    canvas->Refresh();
+    break;
+  case ID_DEBUG_REGION_OVERLAY:
+    canvas->regionOverlay = !canvas->regionOverlay;
     canvas->Refresh();
     break;
 #endif

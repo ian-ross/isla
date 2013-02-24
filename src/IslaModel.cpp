@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <vector>
+#include <stack>
 using namespace std;
 
 #include "ncFile.h"
@@ -89,14 +90,46 @@ void IslaModel::recalcAll(void)
 {
   cout << "Model recalculation triggered" << endl;
   landmass = GridData<int>(gr, 0);
+  calcLandMasses();
   ismask = GridData<int>(gr, 0);
 }
 
 
-// Index land masses.
+// Index land masses using flood fill.
+
+template<typename T>
+static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
+                      const GridData<bool> &mask)
+{
+  typedef pair<int,int> Cell;
+  stack<Cell> st;
+  int nc = res.grid()->nlon(), nr = res.grid()->nlat();
+  st.push(Cell(r0, c0));
+  while (!st.empty()) {
+    Cell chk = st.top();
+    st.pop();
+    int r = chk.first, c =chk.second;
+    if (mask(r, c) && res(r, c) == empty) {
+      res(r, c) = val;
+      st.push(Cell(r, (c + 1) % nc));
+      st.push(Cell(r, (c - 1 + nc) % nc));
+      if (r > 0) st.push(Cell(r - 1, c));
+      if (r < nr - 1) st.push(Cell(r + 1, c));
+    }
+  }
+}
 
 void IslaModel::calcLandMasses(void)
 {
   landmass = -1;
-
+  int region = 1;
+  for (int r = 0; r < gr->nlat(); ++r)
+    for (int c = 0; c < gr->nlon(); ++c) {
+      if (landmass(r, c) >= 0) continue;
+      if (!mask(r, c)) { landmass(r, c) = 0; continue; }
+      floodFill(landmass, r, c, region++, -1, mask);
+    }
 }
+
+
+

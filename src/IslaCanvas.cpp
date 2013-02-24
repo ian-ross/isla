@@ -37,7 +37,7 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
            wxFULL_REPAINT_ON_RESIZE)
 #ifdef ISLA_DEBUG
-  , sizingOverlay(false)
+  , sizingOverlay(false), regionOverlay(false)
 #endif
 {
   // Calculate border width and border text offset.
@@ -197,10 +197,32 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 
 #ifdef ISLA_DEBUG
   // Debug overlays.
+  if (regionOverlay) {
+    wxCoord tw, th;
+    dc.SetFont(*wxSWISS_FONT);
+    dc.GetTextExtent(_("X"), &tw, &th);
+    int cs = MinCellSize();
+    wxFont font(*wxSWISS_FONT);
+    if (th > 0.9 * cs) {
+      font.SetPointSize(font.GetPointSize() * 0.9 * cs / th);
+      dc.SetFont(font);
+    }
+    dc.SetTextForeground(*wxBLUE);
+    dc.SetClippingRegion(xoff, yoff, mapw, maph);
+    wxString txt;
+    GridPtr g = model->grid();
+    for (int c = 0; c < nlon; ++c)
+      for (int r = 0; r < nlat; ++r) {
+        txt.Printf(_("%d"), model->landMass(r, c));
+        int x = lonToX(g->lon(c)), y = latToY(g->lat(r));
+        dc.GetTextExtent(txt, &tw, &th);
+        dc.DrawText(txt, xoff + x - tw / 2, yoff + y - th / 2);
+      }
+  }
   if (sizingOverlay) {
     wxCoord tw, th;
-    dc.GetTextExtent(_("X"), &tw, &th);
     dc.SetFont(*wxSWISS_FONT);
+    dc.GetTextExtent(_("X"), &tw, &th);
     dc.SetTextForeground(*wxRED);
     int x = 50, y = 30, l = 0;
     wxString txt;

@@ -31,9 +31,10 @@ public:
   // Load a new mask from a NetCDF file.
   void LoadMask(std::string file, std::string var);
 
-  // Extract mask values.
+  // Extract data values.
   bool maskVal(int r, int c) { return mask(r, c); }
   bool origMaskVal(int r, int c) { return orig_mask(r, c); }
+  int landMass(int r, int c) { return landmass(r, c); }
 
   // Check for changes in grid or islands from the values generated
   // from the originally loaded mask data.  These are used as

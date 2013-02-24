@@ -26,6 +26,7 @@ enum {
 #ifdef ISLA_DEBUG
   // Debug menu
   ID_DEBUG_SIZE_OVERLAY,
+  ID_DEBUG_REGION_OVERLAY,
 #endif
 };
 
