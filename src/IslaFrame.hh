@@ -17,7 +17,7 @@ class IslaCanvas;
 class IslaFrame : public wxFrame {
 public:
   IslaFrame();
-  virtual ~IslaFrame() { delete model; }
+  virtual ~IslaFrame() { }
 
   void UpdateUI();
 

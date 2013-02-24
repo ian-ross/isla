@@ -25,22 +25,16 @@ public:
 
   // Pan and zoom behaviour.
   void Pan(int dx, int dy);
-  void ZoomIn(void);
-  void ZoomOut(void);
+  void ZoomIn(void) { ZoomScale(1.25); }
+  void ZoomOut(void) { ZoomScale(1.0/1.25); }
   bool ZoomInOK(void) const { return true; }
   bool ZoomOutOK(void) const { return true; }
 
   // View management
   double GetScale(void) const { return scale; }
-  int GetMinCellSize(void) const;
-  void Recenter(wxInt32 i, wxInt32 j);
 
   // Model changed...
   void modelReset(IslaModel *m);
-
-  // Drawing
-  void DrawAll();
-  void DrawCell(wxInt32 i, wxInt32 j, bool alive);
 
 #ifdef ISLA_DEBUG
   bool sizingOverlay;           // Display sizing information?
@@ -52,12 +46,14 @@ private:
                   const std::vector<int> &xOrYs,
                   const std::vector<wxString> &labs);
 
+  void ZoomScale(double zfac);  // Rescale.
+  void SizeRecalc(void);        // Recalculate sizing information.
+
   DECLARE_EVENT_TABLE()
   void OnPaint(wxPaintEvent &e);
   void OnMouse(wxMouseEvent &e);
   void OnSize(wxSizeEvent &e);
-  void OnScroll(wxScrollWinEvent &e);
-  void OnEraseBackground(wxEraseEvent &e);
+  void OnEraseBackground(wxEraseEvent &e) { }
 
   // Draw a cell (parametrized by DC)
   void DrawCell(wxInt32 i, wxInt32 j, wxDC &dc);
@@ -71,24 +67,12 @@ private:
     return mapw / 2 + dlon * scale;
   }
 
-  // Conversion between cell and screen coordinates
-  wxInt32 XToCell(wxCoord x) const { return 0; }
-  wxInt32 YToCell(wxCoord y) const { return 0; }
-  wxCoord CellToX(wxInt32 i) const { return 0; }
-  wxCoord CellToY(wxInt32 j) const { return 0; }
-
   enum MouseState {
     MOUSE_NOTHING,
     MOUSE_PAN_X,
     MOUSE_PAN_Y,
     MOUSE_PAN_2D
   };
-
-  wxInt32      _viewportX;       // first visible cell (x coord)
-  wxInt32      _viewportY;       // first visible cell (y coord)
-  wxInt32      _viewportW;       // number of visible cells (w)
-  wxInt32      _viewportH;       // number of visible cells (h)
-  wxInt32      _mi, _mj;         // last mouse position
 
   // Window layout parameters.
   int canw, canh;               // Canvas dimensions.

@@ -236,7 +236,6 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
   case wxID_NEW: {
     // stop if it was running
     model->reset();
-    canvas->Recenter(0, 0);
     break;
   }
   case wxID_ABOUT: {
