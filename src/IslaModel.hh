@@ -34,6 +34,7 @@ public:
   // Extract data values.
   bool maskVal(int r, int c) { return mask(r, c); }
   bool origMaskVal(int r, int c) { return orig_mask(r, c); }
+  bool isIsland(int r, int c) { return is_island(r, c); }
   int landMass(int r, int c) { return landmass(r, c); }
 
   // Change data values.
@@ -67,6 +68,7 @@ private:
   int island_threshold;         // Maximum land mass size for an island.
   GridData<int> landmass;       // Land mass index for current mask.
   std::vector<int> lmsizes;     // Land mass sizes.
+  GridData<bool> is_island;     // Are land points part of an island?
   GridData<int> ismask;         // UM ISMASK for current mask.
 };
 

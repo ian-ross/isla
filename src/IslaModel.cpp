@@ -29,8 +29,9 @@ IslaModel::IslaModel() :
   orig_mask(gr, false),
   mask(orig_mask),              // Unchanged from "original".
   island_threshold(20),         // Reasonable default.
-  landmass(gr, 0),            // All ocean.
-  ismask(gr, 0)               // All ocean.
+  landmass(gr, 0),              // All ocean.
+  is_island(gr, false),         // All ocean.
+  ismask(gr, 0)                 // All ocean.
 { }
 
 
@@ -54,6 +55,7 @@ void IslaModel::LoadMask(std::string file, std::string var)
   gr = newgr;
   orig_mask = new_mask;
   mask = orig_mask;
+  is_island = GridData<bool>(newgr, false);
   recalcAll();
 }
 
@@ -89,7 +91,6 @@ void IslaModel::setIslandThreshold(int thresh)
 
 void IslaModel::recalcAll(void)
 {
-  cout << "Model recalculation triggered" << endl;
   landmass = GridData<int>(gr, 0);
   calcLandMasses();
   ismask = GridData<int>(gr, 0);
@@ -112,10 +113,19 @@ static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
     int r = chk.first, c =chk.second;
     if (mask(r, c) && res(r, c) == empty) {
       res(r, c) = val;
-      st.push(Cell(r, (c + 1) % nc));
-      st.push(Cell(r, (c - 1 + nc) % nc));
-      if (r > 0) st.push(Cell(r - 1, c));
-      if (r < nr - 1) st.push(Cell(r + 1, c));
+      int cp1 = (c + 1) % nc, cm1 = (c - 1 + nc) % nc;
+      st.push(Cell(r, cp1));
+      st.push(Cell(r, cm1));
+      if (r > 0) {
+        st.push(Cell(r - 1, c));
+        st.push(Cell(r - 1, cp1));
+        st.push(Cell(r - 1, cm1));
+      }
+      if (r < nr - 1) {
+        st.push(Cell(r + 1, c));
+        st.push(Cell(r + 1, cp1));
+        st.push(Cell(r + 1, cm1));
+      }
     }
   }
 }
@@ -130,12 +140,19 @@ void IslaModel::calcLandMasses(void)
       if (!mask(r, c)) { landmass(r, c) = 0; continue; }
       floodFill(landmass, r, c, region++, -1, mask);
     }
-  lmsizes.resize(region);
+  lmsizes.clear();
+  lmsizes.resize(region, 0);
   for (int r = 0; r < gr->nlat(); ++r)
     for (int c = 0; c < gr->nlon(); ++c)
       if (landmass(r, c) >= 0) ++lmsizes[landmass(r, c)];
-  for (int i = 0; i < region; ++i)
-    cout << "Region " << i << ": " << lmsizes[i] << " points" << endl;
+  set<int> island_regions;
+  for (int i = 1; i < region; ++i)
+    if (lmsizes[i] <= island_threshold) island_regions.insert(i);
+  is_island = false;
+  for (int r = 0; r < gr->nlat(); ++r)
+    for (int c = 0; c < gr->nlon(); ++c)
+      is_island(r, c) =
+        island_regions.find(landmass(r, c)) != island_regions.end();
 }
 
 

@@ -154,11 +154,14 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   dc.SetClippingRegion(xoff, yoff, mapw, maph);
 
   // Fill grid cells.
-  dc.SetBrush(*wxLIGHT_GREY_BRUSH);
   dc.SetPen(*wxTRANSPARENT_PEN);
   for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon)
     for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r)
       if (model->maskVal(r, c)) {
+        if (model->isIsland(r, c))
+          dc.SetBrush(*wxBLACK_BRUSH);
+        else
+          dc.SetBrush(*wxLIGHT_GREY_BRUSH);
         int xl = lonToX(iclons[c]), xr = lonToX(iclons[(c+1)%nlon]);
         int yt = max(0.0, latToY(iclats[r]));
         int yb = min(latToY(iclats[r+1]), canh);
