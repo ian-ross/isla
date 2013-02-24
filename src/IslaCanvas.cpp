@@ -128,8 +128,20 @@ void IslaCanvas::modelReset(IslaModel *m)
 
 void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 {
+  // Setup: determine minimum region to redraw.
   GridPtr g = model->grid();
   int nlon = g->nlon(), nlat = g->nlat();
+  int nhor = min(static_cast<double>(nlon), mapw / (minDlon * scale) + 1) + 1;
+  int nver = min(static_cast<double>(nlat), maph / (minDlat * scale) + 2);
+  int lon0 = XToLon(0), lat0 = YToLat(maph);
+  int ilon0 = 0, ilat0 = 0;
+  double loni = g->lon(ilon0), loni1 = g->lon((ilon0 + 1) % nlon);
+  while (!(lon0 >= loni && lon0 < loni1 + (loni1 >= loni ? 0 : 360.0))) {
+    ilon0 = (ilon0 + 1) % nlon;
+    loni = g->lon(ilon0);
+    loni1 = g->lon((ilon0 + 1) % nlon);
+  }
+  while (g->lat(ilat0) < lat0) ++ilat0;
   wxPaintDC dc(this);
 
   // Clear grid cell and axis areas.
@@ -141,11 +153,10 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   dc.SetClippingRegion(xoff, yoff, mapw, maph);
 
   // Fill grid cells.
-  // LONGITUDE WRAPAROUND ISSUES...
   dc.SetBrush(*wxLIGHT_GREY_BRUSH);
   dc.SetPen(*wxTRANSPARENT_PEN);
-  for (int c = 0; c < nlon; ++c)
-    for (int r = 0; r < nlat; ++r)
+  for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon)
+    for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r)
       if (model->maskVal(r, c)) {
         int xl = lonToX(iclons[c]), xr = lonToX(iclons[(c+1)%nlon]);
         int yt = max(0.0, latToY(iclats[r]));
@@ -162,13 +173,13 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   // Draw grid.
   if (MinCellSize() >= 10) {
     dc.SetPen(*wxGREY_PEN);
-    for (int i = 0; i < nlon + 1; ++i) {
-      int x = lonToX(iclons[i]);
+    for (int i = 0, c = ilon0; i <= nhor; ++i, c = (c + 1) % nlon) {
+      int x = lonToX(iclons[c]);
       if (x >= 0 && x <= mapw)
         dc.DrawLine(xoff + x, yoff, xoff + x, yoff + maph);
     }
-    for (int i = 0; i < nlat + 1; ++i) {
-      int y = latToY(iclats[i]);
+    for (int i = 0, r = ilat0; i <= nver && r <= nlat; ++i, ++r) {
+      int y = latToY(iclats[r]);
       if (y >= 0 && y <= maph)
         dc.DrawLine(xoff, yoff + y, xoff + mapw, yoff + y);
     }
@@ -200,7 +211,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   if (regionOverlay) {
     wxCoord tw, th;
     dc.SetFont(*wxSWISS_FONT);
-    dc.GetTextExtent(_("X"), &tw, &th);
+    dc.GetTextExtent(_("XX"), &tw, &th);
     int cs = MinCellSize();
     wxFont font(*wxSWISS_FONT);
     if (th > 0.9 * cs) {
@@ -211,13 +222,14 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     dc.SetClippingRegion(xoff, yoff, mapw, maph);
     wxString txt;
     GridPtr g = model->grid();
-    for (int c = 0; c < nlon; ++c)
-      for (int r = 0; r < nlat; ++r) {
+    for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon) {
+      int x = xoff + lonToX(g->lon(c)) - tw / 2;
+      for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
         txt.Printf(_("%d"), model->landMass(r, c));
-        int x = lonToX(g->lon(c)), y = latToY(g->lat(r));
-        dc.GetTextExtent(txt, &tw, &th);
-        dc.DrawText(txt, xoff + x - tw / 2, yoff + y - th / 2);
+        int y = latToY(g->lat(r));
+        dc.DrawText(txt, x, yoff + y - th / 2);
       }
+    }
   }
   if (sizingOverlay) {
     wxCoord tw, th;
@@ -242,7 +254,11 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 // Mouse handler.  Deals with:
 //
 //  * Dragging in the axis borders: pans view.
-//
+//  * Mousewheel events anywhere in the canvas: pan view.
+//  * Dragging anywhere in the canvas while the pan tool is active:
+//    pans view.
+//  * Dragging anywhere in the canvas while "zoom to selection" is
+//    active: rubberbands zoom box then triggers zoom when done.
 
 void IslaCanvas::OnMouse(wxMouseEvent& event)
 {
@@ -388,8 +404,8 @@ void IslaCanvas::SetupAxes(bool dox, bool doy)
     }
     int skip = 2;
     while (skip * mindpos < 3 * maxtw) skip += 2;
-    laxpos.resize(nlat / skip);
-    laxlab.resize(nlat / skip);
+    laxpos.resize(nlat / skip - (nlat % skip == 0 ? 1 : 0));
+    laxlab.resize(nlat / skip - (nlat % skip == 0 ? 1 : 0));
     for (int i = skip; i < nlat; i += skip) {
       laxpos[i/skip-1] = yoff + latToY(g->lat(i - 1));
       laxlab[i/skip-1].Printf(_("%d"), i);
@@ -449,6 +465,9 @@ void IslaCanvas::ZoomScale(double zfac)
   SizeRecalc();
   Refresh();
 }
+
+
+// Zoom to fit map within available canvas area.
 
 void IslaCanvas::ZoomToFit(void)
 {
