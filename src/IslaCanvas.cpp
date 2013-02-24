@@ -25,7 +25,7 @@ BEGIN_EVENT_TABLE(IslaCanvas, wxWindow)
   EVT_MOTION           (IslaCanvas::OnMouse)
   EVT_LEFT_DOWN        (IslaCanvas::OnMouse)
   EVT_LEFT_UP          (IslaCanvas::OnMouse)
-  EVT_LEFT_DCLICK      (IslaCanvas::OnMouse)
+  EVT_MOUSEWHEEL       (IslaCanvas::OnMouse)
   EVT_ERASE_BACKGROUND (IslaCanvas::OnEraseBackground)
 END_EVENT_TABLE()
 
@@ -224,32 +224,36 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 
 void IslaCanvas::OnMouse(wxMouseEvent& event)
 {
-  if (!event.LeftIsDown()) { mouse = MOUSE_NOTHING; return; }
-
   int x = event.GetX(), y = event.GetY();
-
-  if (event.LeftDown()) {
-    // Start a new action.
-    bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
-    bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
-    if (!xpanevent && !ypanevent && !panning)
-      mouse = MOUSE_NOTHING;
-    else {
-      mousex = x;  mousey = y;
-      if (panning)
-        mouse = MOUSE_PAN_2D;
-      else
-        mouse = xpanevent ? MOUSE_PAN_X : MOUSE_PAN_Y;
+  bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
+  bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
+  if (event.GetEventType() == wxEVT_MOUSEWHEEL) {
+    if (xpanevent)
+      Pan(0.25 * event.GetWheelRotation(), 0);
+    else
+      Pan(0, 0.25 * event.GetWheelRotation());
+  } else {
+    if (!event.LeftIsDown()) { mouse = MOUSE_NOTHING; return; }
+    if (event.LeftDown()) {
+      // Start a new action.
+      if (!xpanevent && !ypanevent && !panning)
+        mouse = MOUSE_NOTHING;
+      else {
+        mousex = x;  mousey = y;
+        if (panning)
+          mouse = MOUSE_PAN_2D;
+        else
+          mouse = xpanevent ? MOUSE_PAN_X : MOUSE_PAN_Y;
+      }
     }
+    switch(mouse) {
+    case MOUSE_NOTHING: return;
+    case MOUSE_PAN_X:  Pan(x - mousex, 0);          break;
+    case MOUSE_PAN_Y:  Pan(0, y - mousey);          break;
+    case MOUSE_PAN_2D: Pan(x - mousex, y - mousey); break;
+    }
+    mousex = x;  mousey = y;
   }
-
-  switch(mouse) {
-  case MOUSE_NOTHING: return;
-  case MOUSE_PAN_X:  Pan(x - mousex, 0);          break;
-  case MOUSE_PAN_Y:  Pan(0, y - mousey);          break;
-  case MOUSE_PAN_2D: Pan(x - mousex, y - mousey); break;
-  }
-  mousex = x;  mousey = y;
 }
 
 
