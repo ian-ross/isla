@@ -17,7 +17,6 @@ FIND_PACKAGE(wxWidgets REQUIRED core base)
 INCLUDE(${wxWidgets_USE_FILE})
 
 SET(isla_SRCS isla.cpp
-              game.cpp
               IslaFrame.cpp
               IslaModel.cpp
               IslaCanvas.cpp
