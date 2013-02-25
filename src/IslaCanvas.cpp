@@ -35,7 +35,8 @@ END_EVENT_TABLE()
 
 IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-           wxFULL_REPAINT_ON_RESIZE)
+           wxFULL_REPAINT_ON_RESIZE),
+  mouse(MOUSE_NOTHING), panning(false), zoom_selection(false), edit(false)
 #ifdef ISLA_DEBUG
   , sizingOverlay(false), regionOverlay(false), ismaskOverlay(false)
 #endif
@@ -146,9 +147,13 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   wxPaintDC dc(this);
 
   // Clear grid cell and axis areas.
+  dc.SetBrush(*wxWHITE_BRUSH);
+  dc.DrawRectangle(xoff, yoff - bw, mapw, bw);
+  dc.DrawRectangle(xoff, yoff + maph, mapw, bw);
+  dc.DrawRectangle(xoff - bw, yoff, bw, maph);
+  dc.DrawRectangle(xoff + mapw, yoff, bw, maph);
   dc.SetBrush(wxBrush(IslaPreferences::get()->getOceanColour()));
-  dc.DrawRectangle(xoff, yoff - bw, mapw, maph + 2 * bw);
-  dc.DrawRectangle(xoff - bw, yoff, mapw + 2 * bw, maph);
+  dc.DrawRectangle(xoff, yoff, mapw, maph);
 
   // Set clip region for grid cells and grid.
   dc.SetClippingRegion(xoff, yoff, mapw, maph);

@@ -12,11 +12,13 @@ using namespace std;
 #include "wx/wx.h"
 #include "wx/stockitem.h"
 #include "wx/statline.h"
+#include "wx/clrpicker.h"
 #include "wx/wfstream.h"
 
 #include "IslaFrame.hh"
 #include "IslaModel.hh"
 #include "IslaCanvas.hh"
+#include "IslaPreferences.hh"
 #include "Dialogues.hh"
 #include "ids.hh"
 
@@ -49,7 +51,8 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (ID_IMPORT_ISLCMP_DATA, IslaFrame::OnMenu)
   EVT_MENU  (ID_CLEAR_ISLCMP_DATA,  IslaFrame::OnMenu)
   EVT_MENU  (ID_EXPORT_ISLAND_DATA, IslaFrame::OnMenu)
-  EVT_MENU  (wxID_EXIT,             IslaFrame::OnMenu)
+  EVT_MENU  (wxID_PREFERENCES,      IslaFrame::OnPreferences)
+  EVT_MENU  (wxID_EXIT,             IslaFrame::OnExit)
 
   EVT_MENU  (wxID_ZOOM_IN,          IslaFrame::OnZoom)
   EVT_MENU  (wxID_ZOOM_OUT,         IslaFrame::OnZoom)
@@ -95,6 +98,7 @@ IslaFrame::IslaFrame() :
   menuFile->Append(ID_EXPORT_ISLAND_DATA, _("&Export island data..."),
                    _("Write new island data file"));
   menuFile->AppendSeparator();
+  menuFile->Append(wxID_PREFERENCES);
   menuFile->Append(wxID_EXIT);
 
   menuView->Append(wxID_ZOOM_IN, wxEmptyString, _("Zoom in"));
@@ -164,6 +168,8 @@ IslaFrame::IslaFrame() :
   toolBar->EnableTool(wxID_ZOOM_OUT, false);
   toolBar->ToggleTool(ID_SELECT, true);
   menuView->Check(ID_SELECT, true);
+  toolBar->ToggleTool(ID_EDIT_MASK, false);
+  menuView->Check(ID_EDIT_MASK, false);
 
   CreateStatusBar(2);
   SetStatusText(_("Welcome to Isla!"));
@@ -230,15 +236,8 @@ void IslaFrame::UpdateUI()
 void IslaFrame::OnMenu(wxCommandEvent &e)
 {
   switch (e.GetId()) {
-  case wxID_NEW:
-    model->reset();
-    canvas->modelReset(model);
-    break;
-  case wxID_ABOUT: {
-    IslaAboutDialog dialog(this);
-    dialog.ShowModal();
-    break;
-  }
+  case wxID_NEW: model->reset();  canvas->modelReset(model);  break;
+  case wxID_ABOUT: { IslaAboutDialogue d(this);  d.ShowModal();  break; }
   case ID_SELECT: canvas->SetSelect();  UpdateUI(); break;
   case ID_EDIT_MASK: canvas->SetEdit(); UpdateUI(); break;
 #ifdef ISLA_DEBUG
@@ -255,7 +254,35 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
     canvas->Refresh();
     break;
 #endif
-  case wxID_EXIT: Close(true); break;
+  }
+}
+
+void IslaFrame::OnExit(wxCommandEvent &e)
+{
+  if (model->hasGridChanges() || model->hasIslandChanges()) {
+    wxMessageDialog qdlg(this,
+                         _("The current mask has unsaved changes.  "
+                           "Are you sure you want to quit?"),
+                         _("Confirm quit"), wxOK | wxCANCEL);
+    if (qdlg.ShowModal() == wxID_CANCEL) return;
+  }
+  Close(true);
+}
+
+void IslaFrame::OnPreferences(wxCommandEvent &e)
+{
+  IslaPrefDialogue d(this);
+  if (d.ShowModal() == wxID_OK) {
+    IslaPreferences *p = IslaPreferences::get();
+    p->setGrid(d.grid());
+    p->setIslandThreshold(d.islandThreshold());
+    p->setOceanColour(d.oceanColour());
+    p->setLandColour(d.landColour());
+    p->setIslandColour(d.islandColour());
+    p->setGridColour(d.gridColour());
+    p->setIslandOutlineColour(d.islandOutlineColour());
+    p->setCompOutlineColour(d.compOutlineColour());
+    canvas->Refresh();
   }
 }
 

@@ -6,6 +6,8 @@
 // Preferences information class for Isla island editor.
 //----------------------------------------------------------------------
 
+#include <wx/config.h>
+
 #include "IslaPreferences.hh"
 
 IslaPreferences *IslaPreferences::inst = 0;
@@ -17,7 +19,8 @@ IslaPreferences *IslaPreferences::get(void) {
 
 IslaPreferences::IslaPreferences()
 {
-  cfg = new wxConfig(_("Isla"));
+  cfg = wxConfigBase::Get();
+  cfg->SetRecordDefaults();
   wxString tmp;
 
   if (cfg->Read(_("/Isla/Grid"), &tmp)) {

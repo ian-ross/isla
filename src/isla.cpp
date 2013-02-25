@@ -19,6 +19,8 @@ IMPLEMENT_APP(IslaApp)
 
 bool IslaApp::OnInit()
 {
+  SetVendorName(_("skybluetrades"));
+  SetAppName(_("isla"));
   IslaFrame *frame = new IslaFrame();
   frame->Show(true);
   SetTopWindow(frame);

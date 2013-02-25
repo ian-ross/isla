@@ -28,6 +28,8 @@ private:
   void OnLoadMask(wxCommandEvent &e);
   void OnSaveMask(wxCommandEvent &e);
   void OnZoom(wxCommandEvent &e);
+  void OnPreferences(wxCommandEvent &e);
+  void OnExit(wxCommandEvent &e);
   void OnClose(wxCloseEvent &e) { Destroy(); }
 
   IslaModel *model;

@@ -57,7 +57,7 @@ private:
   wxColour grid_colour;
   wxColour outline_colour;
   wxColour comp_outline_colour;
-  wxConfig *cfg;
+  wxConfigBase *cfg;
 };
 
 #endif
