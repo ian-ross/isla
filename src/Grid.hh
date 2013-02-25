@@ -14,6 +14,7 @@ public:
 
   int nlat(void) const { return _lats.size(); }
   int nlon(void) const { return _lons.size(); }
+  double cellArea(int r, int c);
   bool lats_reversed(void) const { return _lats_reversed; }
   bool lons_reversed(void) const { return _lons_reversed; }
   const std::vector<double> lats(void) const { return _lats; }

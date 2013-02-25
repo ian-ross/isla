@@ -16,20 +16,41 @@ using namespace netCDF;
 
 #include "IslaModel.hh"
 
-const int HADCM3_NLAT = 37, HADCM3_NLON = 48;
-const double HADCM3_LAT0 = 90.0, HADCM3_LON0 = 0.0;
-const double HADCM3_DLAT = -5.0, HADCM3_DLON = 7.5;
+GridPtr IslaModel::makeGrid(GridType g)
+{
+  Grid *newgr;
+  switch (g) {
+  case HadCM3L: {
+    const int HADCM3L_NLAT = 37, HADCM3L_NLON = 48;
+    const double HADCM3L_LAT0 = 90.0, HADCM3L_LON0 = 0.0;
+    const double HADCM3L_DLAT = -5.0, HADCM3L_DLON = 7.5;
+    newgr = new Grid(HADCM3L_NLAT, HADCM3L_LAT0, HADCM3L_DLAT,
+                     HADCM3L_NLON, HADCM3L_LON0, HADCM3L_DLON);
+    break;
+  }
+  case HadCM3: {
+    const int HADCM3_NLAT = 73, HADCM3_NLON = 96;
+    const double HADCM3_LAT0 = 89.5, HADCM3_LON0 = 0.0;
+    const double HADCM3_DLAT = -2.5, HADCM3_DLON = 3.75;
+    newgr = new Grid(HADCM3_NLAT, HADCM3_LAT0, HADCM3_DLAT,
+                     HADCM3_NLON, HADCM3_LON0, HADCM3_DLON);
+    break;
+  }
+  case HadGEM: {
 
+  }
+  }
+  return GridPtr(newgr);
+}
 
 // Create a default model: HadCM3 grid, no land.
 
-IslaModel::IslaModel() :
-  gr(new Grid(HADCM3_NLAT, HADCM3_LAT0, HADCM3_DLAT,
-              HADCM3_NLON, HADCM3_LON0, HADCM3_DLON)),
+IslaModel::IslaModel(GridType g, double thr) :
+  gr(makeGrid(g)),
   orig_mask(gr, false),
   mask(orig_mask),              // Unchanged from "original".
   grid_changes(0),
-  island_threshold(20),         // Reasonable default.
+  island_threshold(thr),
   landmass(gr, 0),              // All ocean.
   is_island(gr, false),         // All ocean.
   ismask(gr, 0)                 // All ocean.
@@ -96,10 +117,10 @@ void IslaModel::saveMask(std::string file)
 // Get and set current island size threshold value.  Changing this
 // value may trigger recalculations.
 
-void IslaModel::setIslandThreshold(int thresh)
+void IslaModel::setIslandThreshold(double thr)
 {
-  if (thresh != island_threshold) {
-    island_threshold = thresh;
+  if (thr != island_threshold) {
+    island_threshold = thr;
     recalcAll();
   }
 }
@@ -160,10 +181,12 @@ void IslaModel::calcLandMasses(void)
       floodFill(landmass, r, c, region++, -1, mask);
     }
   lmsizes.clear();
-  lmsizes.resize(region, 0);
+  lmsizes.resize(region, 0.0);
   for (int r = 0; r < gr->nlat(); ++r)
     for (int c = 0; c < gr->nlon(); ++c)
-      if (landmass(r, c) >= 0) ++lmsizes[landmass(r, c)];
+      if (landmass(r, c) >= 0) lmsizes[landmass(r, c)] += gr->cellArea(r, c);
+  for (int i = 1; i < region; ++i)
+    cout << "Land mass " << i << ": " << lmsizes[i] << " km^2" << endl;
   set<int> island_regions;
   for (int i = 1; i < region; ++i)
     if (lmsizes[i] <= island_threshold) island_regions.insert(i);

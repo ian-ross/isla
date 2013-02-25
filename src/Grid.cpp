@@ -66,3 +66,21 @@ Grid::Grid(int nlat, double lat0, double dlat,
 Grid::Grid(const Grid &other) :
   _lats(other._lats), _lons(other._lons)
 { }
+
+
+// Radius of Earth in km.
+const double REARTH = 6370.0;
+
+double Grid::cellArea(int r, int c)
+{
+  double lat = _lats[r], lon = _lons[c];
+  double dlon = _lons[1] - _lons[0], dlat;
+  if (r == 0)
+    dlat = (_lats[1] - _lats[0]) / 2 + (_lats[0] - (-90.0));
+  else if (r == nlat() - 1)
+    dlat = (_lats[nlat()-1] - _lats[nlat()-2]) / 2 + (90.0 - _lats[nlat()-1]);
+  else dlat = (_lats[r + 1] - _lats[r - 1]) / 2;
+  double dphi = dlon / 180.0 * M_PI, dtheta = dlat / 180.0 * M_PI;
+  double theta = (90 - lat) / 180.0 * M_PI;
+  return REARTH * REARTH * sin(theta) * dtheta * dphi;
+}

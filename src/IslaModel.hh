@@ -18,8 +18,11 @@
 
 class IslaModel {
 public:
-  // Create a default model: HadCM3 grid, no land.
-  IslaModel();
+  enum GridType { HadCM3L, HadCM3, HadGEM };
+
+  // Create a default model: HadCM3L grid, no land, island threshold
+  // set at 8.0E6 km^2 (big enough to include Australia).
+  IslaModel(GridType g = HadCM3L, double thr = 8.0E6);
   ~IslaModel() { }
 
   // Access grid.
@@ -59,7 +62,7 @@ public:
   // Get and set current island size threshold value.  Changing this
   // value may trigger recalculations.
   int islandThreshold(void) const { return island_threshold; }
-  void setIslandThreshold(int thresh);
+  void setIslandThreshold(double thresh);
 
   // Recalculate everything: land masses, ISMASK, islands.
   void recalcAll(void);
@@ -68,6 +71,8 @@ public:
   void calcIsMask(void);        // Calculation ISMASK.
 
 private:
+  static GridPtr makeGrid(GridType g);
+
   std::string maskfile;         // Input mask NetCDF file.
   std::string maskvar;          // Input mask NetCDF variable name.
   GridPtr gr;                   // Working grid.
@@ -76,9 +81,10 @@ private:
   int grid_changes;             // Changes between original and
                                 // current mask.
 
-  int island_threshold;         // Maximum land mass size for an island.
+  double island_threshold;      // Maximum land mass size for an island
+                                // (km^2).
   GridData<int> landmass;       // Land mass index for current mask.
-  std::vector<int> lmsizes;     // Land mass sizes.
+  std::vector<double> lmsizes;  // Land mass sizes.
   GridData<bool> is_island;     // Are land points part of an island?
   GridData<int> ismask;         // UM ISMASK for current mask.
 };
