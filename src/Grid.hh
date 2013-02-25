@@ -16,6 +16,8 @@ public:
   int nlon(void) const { return _lons.size(); }
   bool lats_reversed(void) const { return _lats_reversed; }
   bool lons_reversed(void) const { return _lons_reversed; }
+  const std::vector<double> lats(void) const { return _lats; }
+  const std::vector<double> lons(void) const { return _lons; }
   double lat(unsigned int i) const {
     if (i < nlat())
       return _lats[i];

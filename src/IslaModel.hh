@@ -31,6 +31,9 @@ public:
   // Load a new mask from a NetCDF file.
   void LoadMask(std::string file, std::string var);
 
+  // Save current mask to NetCDF file.
+  void SaveMask(std::string file);
+
   // Extract data values.
   bool maskVal(int r, int c) { return mask(r, c); }
   bool origMaskVal(int r, int c) { return orig_mask(r, c); }
@@ -38,13 +41,18 @@ public:
   int landMass(int r, int c) { return landmass(r, c); }
 
   // Change data values.
-  void SetMask(int r, int c, bool val) { mask(r, c) = val; }
+  void SetMask(int r, int c, bool val) {
+    bool orig = orig_mask(r, c), old = mask(r, c);
+    if (old == orig && val != orig) ++grid_changes;
+    else if (old != orig && val == orig) --grid_changes;
+    mask(r, c) = val;
+  }
 
   // Check for changes in grid or islands from the values generated
   // from the originally loaded mask data.  These are used as
   // indicators that there are changes that might need to be saved
   // before certain actions.
-  bool hasGridChanges(void) const;
+  bool hasGridChanges(void) const { return grid_changes > 0; }
   bool hasIslandChanges(void) const { return false; }
 
   // Get and set current island size threshold value.  Changing this
@@ -64,6 +72,8 @@ private:
   GridPtr gr;                   // Working grid.
   GridData<bool> orig_mask;     // Original mask data.
   GridData<bool> mask;          // Current mask data.
+  int grid_changes;             // Changes between original and
+                                // current mask.
 
   int island_threshold;         // Maximum land mass size for an island.
   GridData<int> landmass;       // Land mass index for current mask.

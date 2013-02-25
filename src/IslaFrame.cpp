@@ -45,7 +45,7 @@ using namespace netCDF;
 BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (wxID_NEW,              IslaFrame::OnMenu)
   EVT_MENU  (wxID_OPEN,             IslaFrame::OnLoadMask)
-  EVT_MENU  (wxID_SAVEAS,           IslaFrame::OnMenu)
+  EVT_MENU  (wxID_SAVEAS,           IslaFrame::OnSaveMask)
   EVT_MENU  (ID_IMPORT_ISLCMP_DATA, IslaFrame::OnMenu)
   EVT_MENU  (ID_CLEAR_ISLCMP_DATA,  IslaFrame::OnMenu)
   EVT_MENU  (ID_EXPORT_ISLAND_DATA, IslaFrame::OnMenu)
@@ -259,6 +259,14 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
 
 void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
 {
+  if (model->hasGridChanges() || model->hasIslandChanges()) {
+    wxMessageDialog qdlg(this,
+                         _("The current mask has unsaved changes.  "
+                           "Are you sure you want to load a new mask?"),
+                         _("Confirm load mask"), wxOK | wxCANCEL);
+    if (qdlg.ShowModal() == wxID_CANCEL) return;
+  }
+
   wxFileDialog filedlg(this,
                        _("Choose a file to open"),
                        wxEmptyString,
@@ -307,6 +315,27 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
   }
   delete nc;
   nc = 0;
+}
+
+void IslaFrame::OnSaveMask(wxCommandEvent &WXUNUSED(e))
+{
+  wxFileDialog filedlg(this,
+                       _("Choose a file to save to"),
+                       wxEmptyString,
+                       wxEmptyString,
+                       _("NetCDF files (*.nc)|*.nc|All files (*.*)|*.*"),
+                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+  if (filedlg.ShowModal() == wxID_CANCEL) return;
+
+  try {
+    model->SaveMask(string(filedlg.GetPath().char_str()));
+  } catch (std::exception &e) {
+    wxMessageDialog msg(this, _("Failed to write NetCDF file"),
+                        _("NetCDF error"), wxICON_ERROR);
+    msg.ShowModal();
+    cout << "EXCEPTION: " << e.what() << endl;
+  }
 }
 
 void IslaFrame::OnZoom(wxCommandEvent &e)

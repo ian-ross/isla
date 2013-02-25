@@ -81,7 +81,6 @@ public:
     GridData<T> &_d;
   };
 
-private:
   // Type conversion utilities.
   template<typename F> class Convert {
   public:
@@ -93,6 +92,7 @@ private:
     std::transform(in.begin(), in.end(), out.begin(), Convert<F>());
   }
 
+private:
   GridPtr _g;
   std::vector<T> _data;
   bool _has_missing;

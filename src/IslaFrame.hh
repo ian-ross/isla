@@ -26,6 +26,7 @@ private:
   void OnMenu(wxCommandEvent &e);
   void OnOpen(wxCommandEvent &e);
   void OnLoadMask(wxCommandEvent &e);
+  void OnSaveMask(wxCommandEvent &e);
   void OnZoom(wxCommandEvent &e);
   void OnClose(wxCloseEvent &e) { Destroy(); }
 

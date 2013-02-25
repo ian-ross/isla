@@ -28,6 +28,7 @@ IslaModel::IslaModel() :
               HADCM3_NLON, HADCM3_LON0, HADCM3_DLON)),
   orig_mask(gr, false),
   mask(orig_mask),              // Unchanged from "original".
+  grid_changes(0),
   island_threshold(20),         // Reasonable default.
   landmass(gr, 0),              // All ocean.
   is_island(gr, false),         // All ocean.
@@ -60,18 +61,35 @@ void IslaModel::LoadMask(std::string file, std::string var)
 }
 
 
-// Check for changes in grid or islands from the values generated from
-// the originally loaded mask data.  These are used as indicators that
-// there are changes that might need to be saved before certain
-// actions.
+// Load a new mask from a NetCDF file.
 
-bool IslaModel::hasGridChanges(void) const
+void IslaModel::SaveMask(std::string file)
 {
-  // Just check to see if any grid cells differ from their original
-  // values.
-  const vector<bool> &orig = orig_mask.data();
-  const vector<bool> &curr = mask.data();
-  return !equal(orig.begin(), orig.end(), curr.begin());
+  // Set up NetCDF file.
+  NcFile nc(file, NcFile::replace);
+  NcDim latdim = nc.addDim("lat", gr->nlat());
+  NcVar latvar = nc.addVar("lat", NcType::nc_DOUBLE, latdim);
+  latvar.putAtt("long_name", "latitude");
+  latvar.putAtt("units", "degrees_north");
+  NcDim londim = nc.addDim("lon", gr->nlon());
+  NcVar lonvar = nc.addVar("lon", NcType::nc_DOUBLE, londim);
+  lonvar.putAtt("long_name", "longitude");
+  lonvar.putAtt("units", "degrees_east");
+  vector<NcDim> maskdims(2);
+  maskdims[0] = latdim;
+  maskdims[1] = londim;
+  NcVar maskvar = nc.addVar("mask", NcType::nc_INT, maskdims);
+
+  // Write data.
+  latvar.putVar(gr->lats().data());
+  lonvar.putVar(gr->lons().data());
+  GridData<int> intmask(gr, 0);
+  mask.process(intmask, GridData<bool>::Convert<int>());
+  maskvar.putVar(intmask.data().data());
+
+  // Record that we've saved the grid.
+  orig_mask = mask;
+  grid_changes = 0;
 }
 
 
