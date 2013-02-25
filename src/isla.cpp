@@ -8,6 +8,7 @@
 
 #include "wx/wx.h"
 #include "IslaFrame.hh"
+#include "IslaPreferences.hh"
 
 class IslaApp: public wxApp {
 public:

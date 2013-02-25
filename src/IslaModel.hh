@@ -18,11 +18,11 @@
 
 class IslaModel {
 public:
-  enum GridType { HadCM3L, HadCM3, HadGEM };
+  enum GridType { HadCM3L, HadCM3, HadGEM2 };
 
   // Create a default model: HadCM3L grid, no land, island threshold
   // set at 8.0E6 km^2 (big enough to include Australia).
-  IslaModel(GridType g = HadCM3L, double thr = 8.0E6);
+  IslaModel();
   ~IslaModel() { }
 
   // Access grid.
@@ -59,11 +59,6 @@ public:
   bool hasGridChanges(void) const { return grid_changes > 0; }
   bool hasIslandChanges(void) const { return false; }
 
-  // Get and set current island size threshold value.  Changing this
-  // value may trigger recalculations.
-  int islandThreshold(void) const { return island_threshold; }
-  void setIslandThreshold(double thresh);
-
   // Recalculate everything: land masses, ISMASK, islands.
   void recalcAll(void);
 
@@ -81,8 +76,6 @@ private:
   int grid_changes;             // Changes between original and
                                 // current mask.
 
-  double island_threshold;      // Maximum land mass size for an island
-                                // (km^2).
   GridData<int> landmass;       // Land mass index for current mask.
   std::vector<double> lmsizes;  // Land mass sizes.
   GridData<bool> is_island;     // Are land points part of an island?

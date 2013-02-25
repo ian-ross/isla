@@ -10,11 +10,16 @@
 #define _ISLA_DIALOGUES_H_
 
 #include "wx/wx.h"
+#include "IslaPreferences.hh"
 
-class IslaAboutDialog: public wxDialog
-{
+class IslaAboutDialog: public wxDialog {
 public:
   IslaAboutDialog(wxWindow *parent);
+};
+
+class IslaPreferencesDialog: public wxDialog {
+public:
+  IslaPreferencesDialog(wxWindow *parent, IslaPreferences &prefs);
 };
 
 #endif

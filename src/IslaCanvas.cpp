@@ -14,6 +14,7 @@ using namespace std;
 
 #include "IslaCanvas.hh"
 #include "IslaModel.hh"
+#include "IslaPreferences.hh"
 
 
 // Canvas event table.
@@ -145,7 +146,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   wxPaintDC dc(this);
 
   // Clear grid cell and axis areas.
-  dc.SetBrush(*wxWHITE_BRUSH);
+  dc.SetBrush(wxBrush(IslaPreferences::get()->getOceanColour()));
   dc.DrawRectangle(xoff, yoff - bw, mapw, maph + 2 * bw);
   dc.DrawRectangle(xoff - bw, yoff, mapw + 2 * bw, maph);
 
@@ -154,13 +155,12 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 
   // Fill grid cells.
   dc.SetPen(*wxTRANSPARENT_PEN);
+  wxBrush land(IslaPreferences::get()->getLandColour());
+  wxBrush island(IslaPreferences::get()->getIslandColour());
   for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon)
     for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r)
       if (model->maskVal(r, c)) {
-        if (model->isIsland(r, c))
-          dc.SetBrush(*wxBLACK_BRUSH);
-        else
-          dc.SetBrush(*wxLIGHT_GREY_BRUSH);
+        dc.SetBrush(model->isIsland(r, c) ? island : land);
         int xl = lonToX(iclons[c]), xr = lonToX(iclons[(c+1)%nlon]);
         int yt = max(0.0, latToY(iclats[r]));
         int yb = min(latToY(iclats[r+1]), canh);
@@ -175,7 +175,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 
   // Draw grid.
   if (MinCellSize() >= 10) {
-    dc.SetPen(*wxGREY_PEN);
+    dc.SetPen(wxPen(IslaPreferences::get()->getGridColour()));
     for (int i = 0, c = ilon0; i <= nhor; ++i, c = (c + 1) % nlon) {
       int x = lonToX(iclons[c]);
       if (x >= 0 && x <= mapw)

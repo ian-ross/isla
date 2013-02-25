@@ -20,6 +20,7 @@ SET(isla_SRCS isla.cpp
               IslaFrame.cpp
               IslaModel.cpp
               IslaCanvas.cpp
+              IslaPreferences.cpp
               Dialogues.cpp
               Grid.cpp)
 ADD_EXECUTABLE(isla ${isla_SRCS})

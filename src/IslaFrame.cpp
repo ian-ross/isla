@@ -70,13 +70,8 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
 END_EVENT_TABLE()
 
 
-// --------------------------------------------------------------------------
-//
-//  IslaFrame
-//
-
 IslaFrame::IslaFrame() :
-  wxFrame((wxFrame *)NULL, wxID_ANY, _("Isla"), wxDefaultPosition )
+  wxFrame((wxFrame *)NULL, wxID_ANY, _("Isla"), wxDefaultPosition)
 {
   SetIcon(wxICON(isla));
 

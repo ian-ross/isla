@@ -15,6 +15,7 @@ using namespace std;
 using namespace netCDF;
 
 #include "IslaModel.hh"
+#include "IslaPreferences.hh"
 
 GridPtr IslaModel::makeGrid(GridType g)
 {
@@ -36,8 +37,13 @@ GridPtr IslaModel::makeGrid(GridType g)
                      HADCM3_NLON, HADCM3_LON0, HADCM3_DLON);
     break;
   }
-  case HadGEM: {
-
+  case HadGEM2: {
+    const int HADGEM2_NLAT = 145, HADGEM2_NLON = 192;
+    const double HADGEM2_LAT0 = -90.0, HADGEM2_LON0 = 0.0;
+    const double HADGEM2_DLAT = 1.25, HADGEM2_DLON = 1.875;
+    newgr = new Grid(HADGEM2_NLAT, HADGEM2_LAT0, HADGEM2_DLAT,
+                     HADGEM2_NLON, HADGEM2_LON0, HADGEM2_DLON);
+    break;
   }
   }
   return GridPtr(newgr);
@@ -45,12 +51,11 @@ GridPtr IslaModel::makeGrid(GridType g)
 
 // Create a default model: HadCM3 grid, no land.
 
-IslaModel::IslaModel(GridType g, double thr) :
-  gr(makeGrid(g)),
+IslaModel::IslaModel() :
+  gr(makeGrid(IslaPreferences::get()->getGrid())),
   orig_mask(gr, false),
   mask(orig_mask),              // Unchanged from "original".
   grid_changes(0),
-  island_threshold(thr),
   landmass(gr, 0),              // All ocean.
   is_island(gr, false),         // All ocean.
   ismask(gr, 0)                 // All ocean.
@@ -111,18 +116,6 @@ void IslaModel::saveMask(std::string file)
   // Record that we've saved the grid.
   orig_mask = mask;
   grid_changes = 0;
-}
-
-
-// Get and set current island size threshold value.  Changing this
-// value may trigger recalculations.
-
-void IslaModel::setIslandThreshold(double thr)
-{
-  if (thr != island_threshold) {
-    island_threshold = thr;
-    recalcAll();
-  }
 }
 
 
@@ -188,6 +181,7 @@ void IslaModel::calcLandMasses(void)
   for (int i = 1; i < region; ++i)
     cout << "Land mass " << i << ": " << lmsizes[i] << " km^2" << endl;
   set<int> island_regions;
+  double island_threshold = IslaPreferences::get()->getIslandThreshold();
   for (int i = 1; i < region; ++i)
     if (lmsizes[i] <= island_threshold) island_regions.insert(i);
   is_island = false;
