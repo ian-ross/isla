@@ -65,6 +65,7 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
 #ifdef ISLA_DEBUG
   EVT_MENU  (ID_DEBUG_SIZE_OVERLAY,   IslaFrame::OnMenu)
   EVT_MENU  (ID_DEBUG_REGION_OVERLAY, IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_ISMASK_OVERLAY, IslaFrame::OnMenu)
 #endif
 END_EVENT_TABLE()
 
@@ -130,6 +131,8 @@ IslaFrame::IslaFrame() :
                              _("Toggle size overlay"));
   menuDebug->AppendCheckItem(ID_DEBUG_REGION_OVERLAY, _("Region overlay"),
                              _("Toggle region overlay"));
+  menuDebug->AppendCheckItem(ID_DEBUG_ISMASK_OVERLAY, _("ISMASK overlay"),
+                             _("Toggle ISMASK overlay"));
   menuBar->Append(menuDebug, _("Debug"));
 #endif
 
@@ -252,6 +255,10 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
     canvas->regionOverlay = !canvas->regionOverlay;
     canvas->Refresh();
     break;
+  case ID_DEBUG_ISMASK_OVERLAY:
+    canvas->ismaskOverlay = !canvas->ismaskOverlay;
+    canvas->Refresh();
+    break;
 #endif
   case wxID_EXIT: Close(true); break;
   }
@@ -304,7 +311,7 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
   }
   if (maskvar != "") {
     try {
-      model->LoadMask(nc_file, maskvar);
+      model->loadMask(nc_file, maskvar);
       canvas->modelReset(model);
     } catch (std::exception &e) {
       wxMessageDialog msg(this, _("Failed to read mask data from NetCDF file"),
@@ -329,7 +336,7 @@ void IslaFrame::OnSaveMask(wxCommandEvent &WXUNUSED(e))
   if (filedlg.ShowModal() == wxID_CANCEL) return;
 
   try {
-    model->SaveMask(string(filedlg.GetPath().char_str()));
+    model->saveMask(string(filedlg.GetPath().char_str()));
   } catch (std::exception &e) {
     wxMessageDialog msg(this, _("Failed to write NetCDF file"),
                         _("NetCDF error"), wxICON_ERROR);

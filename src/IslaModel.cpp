@@ -46,7 +46,7 @@ void IslaModel::reset(void)
 
 // Load a new mask from a NetCDF file.
 
-void IslaModel::LoadMask(std::string file, std::string var)
+void IslaModel::loadMask(std::string file, std::string var)
 {
   NcFile nc(file, NcFile::read);
   GridPtr newgr = GridPtr(new Grid(nc));
@@ -63,7 +63,7 @@ void IslaModel::LoadMask(std::string file, std::string var)
 
 // Load a new mask from a NetCDF file.
 
-void IslaModel::SaveMask(std::string file)
+void IslaModel::saveMask(std::string file)
 {
   // Set up NetCDF file.
   NcFile nc(file, NcFile::replace);
@@ -112,6 +112,7 @@ void IslaModel::recalcAll(void)
   landmass = GridData<int>(gr, 0);
   calcLandMasses();
   ismask = GridData<int>(gr, 0);
+  calcIsMask();
 }
 
 
@@ -171,6 +172,26 @@ void IslaModel::calcLandMasses(void)
     for (int c = 0; c < gr->nlon(); ++c)
       is_island(r, c) =
         island_regions.find(landmass(r, c)) != island_regions.end();
+}
+
+
+// Calculate ISMASK field for island boundary calculations.
+
+void IslaModel::calcIsMask(void)
+{
+  int nlon = gr->nlon(), nlat = gr->nlat();
+  for (int r = 0; r < nlat; ++r)
+    for (int c = 0; c < nlon; ++c) {
+      int v = mask(r, c);
+      v += (r == 0) || mask(r - 1, c);
+      v += mask(r, (c - 1 + nlon) % nlon);
+      v += (r == 0) || mask(r - 1, (c - 1 + nlon) % nlon);
+      switch (v) {
+      case 4:  ismask(r, c) = 2; break;
+      case 0:  ismask(r, c) = 0; break;
+      default: ismask(r, c) = 1; break;
+      }
+    }
 }
 
 

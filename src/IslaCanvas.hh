@@ -61,6 +61,7 @@ public:
 #ifdef ISLA_DEBUG
   bool sizingOverlay;           // Display sizing information?
   bool regionOverlay;           // Display region information?
+  bool ismaskOverlay;           // Display ISMASK information?
 #endif
 
 private:

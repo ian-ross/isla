@@ -14,7 +14,6 @@ using namespace std;
 
 #include "IslaCanvas.hh"
 #include "IslaModel.hh"
-#include "game.hh"
 
 
 // Canvas event table.
@@ -37,7 +36,7 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
            wxFULL_REPAINT_ON_RESIZE)
 #ifdef ISLA_DEBUG
-  , sizingOverlay(false), regionOverlay(false)
+  , sizingOverlay(false), regionOverlay(false), ismaskOverlay(false)
 #endif
 {
   // Calculate border width and border text offset.
@@ -235,6 +234,29 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
       }
     }
   }
+  if (ismaskOverlay) {
+    wxCoord tw, th;
+    dc.SetFont(*wxSWISS_FONT);
+    dc.GetTextExtent(_("X"), &tw, &th);
+    int cs = MinCellSize();
+    wxFont font(*wxSWISS_FONT);
+    if (th > 0.9 * cs) {
+      font.SetPointSize(font.GetPointSize() * 0.9 * cs / th);
+      dc.SetFont(font);
+    }
+    dc.SetTextForeground(*wxRED);
+    dc.SetClippingRegion(xoff, yoff, mapw, maph);
+    wxString txt;
+    GridPtr g = model->grid();
+    for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon) {
+      int x = xoff + lonToX(g->lon(c)) - tw / 2;
+      for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
+        txt.Printf(_("%d"), model->isMask(r, c));
+        int y = latToY(g->lat(r));
+        dc.DrawText(txt, x, yoff + y - th / 2);
+      }
+    }
+  }
   if (sizingOverlay) {
     wxCoord tw, th;
     dc.SetFont(*wxSWISS_FONT);
@@ -331,7 +353,7 @@ void IslaCanvas::ProcessEdit(wxMouseEvent &event)
     double edlon = XToLon(x - bw), edlat = YToLat(y - bw);
     edcol = lonToCol(edlon);
     edrow = latToRow(edlat);
-    model->SetMask(edrow, edcol, !model->maskVal(edrow, edcol));
+    model->setMask(edrow, edcol, !model->maskVal(edrow, edcol));
     edval = model->maskVal(edrow, edcol);
     mouse = MOUSE_EDIT;
     Refresh();
@@ -340,7 +362,7 @@ void IslaCanvas::ProcessEdit(wxMouseEvent &event)
     int newedcol = lonToCol(edlon), newedrow = latToRow(edlat);
     if (newedcol != edcol || newedrow != edrow) {
       edcol = newedcol;  edrow = newedrow;
-      model->SetMask(edrow, edcol, edval);
+      model->setMask(edrow, edcol, edval);
       Refresh();
     }
   } else { mouse = MOUSE_NOTHING;  return; }

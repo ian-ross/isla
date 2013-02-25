@@ -27,6 +27,7 @@ enum {
   // Debug menu
   ID_DEBUG_SIZE_OVERLAY,
   ID_DEBUG_REGION_OVERLAY,
+  ID_DEBUG_ISMASK_OVERLAY,
 #endif
 };
 

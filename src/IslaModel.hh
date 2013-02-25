@@ -29,19 +29,20 @@ public:
   void reset(void);
 
   // Load a new mask from a NetCDF file.
-  void LoadMask(std::string file, std::string var);
+  void loadMask(std::string file, std::string var);
 
   // Save current mask to NetCDF file.
-  void SaveMask(std::string file);
+  void saveMask(std::string file);
 
   // Extract data values.
   bool maskVal(int r, int c) { return mask(r, c); }
   bool origMaskVal(int r, int c) { return orig_mask(r, c); }
   bool isIsland(int r, int c) { return is_island(r, c); }
   int landMass(int r, int c) { return landmass(r, c); }
+  int isMask(int r, int c) { return ismask(r, c); }
 
   // Change data values.
-  void SetMask(int r, int c, bool val) {
+  void setMask(int r, int c, bool val) {
     bool orig = orig_mask(r, c), old = mask(r, c);
     if (old == orig && val != orig) ++grid_changes;
     else if (old != orig && val == orig) --grid_changes;
@@ -63,8 +64,8 @@ public:
   // Recalculate everything: land masses, ISMASK, islands.
   void recalcAll(void);
 
-  // Index land masses.
-  void calcLandMasses(void);
+  void calcLandMasses(void);    // Index land masses.
+  void calcIsMask(void);        // Calculation ISMASK.
 
 private:
   std::string maskfile;         // Input mask NetCDF file.
