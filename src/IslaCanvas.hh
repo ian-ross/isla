@@ -36,6 +36,7 @@ public:
   bool ZoomInOK(void) const { return MinCellSize() < 64; }
   bool ZoomOutOK(void) const { return MinCellSize() > 2; }
   bool Panning(void) const { return panning; }
+  bool Editing(void) const { return edit; }
   void SetPanning(bool pan) {
     panning = pan;
     zoom_selection = false;

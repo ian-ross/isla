@@ -36,6 +36,8 @@ using namespace netCDF;
 #include "bitmaps/zoom-fit.xpm"
 #include "bitmaps/zoom-select.xpm"
 #include "bitmaps/pan.xpm"
+#include "bitmaps/select.xpm"
+#include "bitmaps/edit.xpm"
 #endif
 
 
@@ -79,7 +81,7 @@ IslaFrame::IslaFrame() :
 
   wxMenu *menuFile = new wxMenu(wxMENU_TEAROFF);
   menuView = new wxMenu(wxMENU_TEAROFF);
-  wxMenu *menuTools = new wxMenu(wxMENU_TEAROFF);
+  menuTools = new wxMenu(wxMENU_TEAROFF);
   wxMenu *menuHelp = new wxMenu(wxMENU_TEAROFF);
 
   menuFile->Append(wxID_NEW, _("&Clear grid"),
@@ -109,10 +111,11 @@ IslaFrame::IslaFrame() :
   menuView->Append(zoomsel_item);
   menuView->AppendCheckItem(ID_PAN, _("&Pan"), _("Pan view"));
 
-  menuTools->Append(ID_SELECT, _("&Select\tCtrl-S"),
-                    _("Select items"));
-  menuTools->Append(ID_EDIT_MASK, _("&Edit land/sea mask\tCtrl-E"),
-                    _("Edit land/sea mask by toggling state of cells"));
+  menuTools->AppendCheckItem(ID_SELECT, _("&Select\tCtrl-S"),
+                             _("Select items"));
+  menuTools->AppendCheckItem(ID_EDIT_MASK, _("&Edit land/sea mask\tCtrl-E"),
+                             _("Edit land/sea mask by "
+                               "toggling state of cells"));
 
   menuHelp->Append(wxID_ABOUT, _("&About\tCtrl-A"), _("Show about dialogue"));
 
@@ -151,9 +154,18 @@ IslaFrame::IslaFrame() :
                    wxBITMAP(zoom_select), wxString(_("Zoom to selection")));
   toolBar->AddCheckTool(ID_PAN, _("Pan"),
                         wxBITMAP(pan), wxNullBitmap, wxString(_("Pan view")));
+  toolBar->AddSeparator();
+  toolBar->AddCheckTool(ID_SELECT, _("Select"),
+                        wxBITMAP(select), wxNullBitmap,
+                        wxString(_("Select items")));
+  toolBar->AddCheckTool(ID_EDIT_MASK, _("Edit land/sea mask"),
+                        wxBITMAP(edit), wxNullBitmap,
+                        wxString(_("Edit land/sea mask")));
   toolBar->Realize();
   toolBar->EnableTool(wxID_ZOOM_IN, false);
   toolBar->EnableTool(wxID_ZOOM_OUT, false);
+  toolBar->ToggleTool(ID_SELECT, true);
+  menuView->Check(ID_SELECT, true);
 
   CreateStatusBar(2);
   SetStatusText(_("Welcome to Isla!"));
@@ -208,6 +220,10 @@ void IslaFrame::UpdateUI()
   GetMenuBar()->Enable(wxID_ZOOM_OUT, outok);
   toolBar->ToggleTool(ID_PAN, canvas->Panning());
   menuView->Check(ID_PAN, canvas->Panning());
+  toolBar->ToggleTool(ID_EDIT_MASK, canvas->Editing());
+  menuTools->Check(ID_EDIT_MASK, canvas->Editing());
+  toolBar->ToggleTool(ID_SELECT, !canvas->Editing());
+  menuTools->Check(ID_SELECT, !canvas->Editing());
 }
 
 // Event handlers -----------------------------------------------------------
@@ -216,25 +232,17 @@ void IslaFrame::UpdateUI()
 void IslaFrame::OnMenu(wxCommandEvent &e)
 {
   switch (e.GetId()) {
-  case wxID_NEW: {
-    // stop if it was running
+  case wxID_NEW:
     model->reset();
     canvas->modelReset(model);
     break;
-  }
   case wxID_ABOUT: {
     IslaAboutDialog dialog(this);
     dialog.ShowModal();
     break;
   }
-  case ID_SELECT: {
-    canvas->SetSelect();
-    break;
-  }
-  case ID_EDIT_MASK: {
-    canvas->SetEdit();
-    break;
-  }
+  case ID_SELECT: canvas->SetSelect();  UpdateUI(); break;
+  case ID_EDIT_MASK: canvas->SetEdit(); UpdateUI(); break;
 #ifdef ISLA_DEBUG
   case ID_DEBUG_SIZE_OVERLAY:
     canvas->sizingOverlay = !canvas->sizingOverlay;
@@ -245,9 +253,7 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
     canvas->Refresh();
     break;
 #endif
-  case wxID_EXIT:
-    Close(true);
-    break;
+  case wxID_EXIT: Close(true); break;
   }
 }
 

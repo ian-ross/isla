@@ -32,6 +32,7 @@ private:
   IslaModel *model;
   IslaCanvas *canvas;
   wxMenu *menuView;
+  wxMenu *menuTools;
   wxToolBar *toolBar;
 };
 
