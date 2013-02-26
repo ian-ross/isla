@@ -33,6 +33,9 @@ enum {
   ID_PREFS_COL_OUTLINE,
   ID_PREFS_COL_COMP,
 
+  // Context menu
+  ID_CTX_TOGGLE_ISLAND,
+
 #ifdef ISLA_DEBUG
   // Debug menu
   ID_DEBUG_SIZE_OVERLAY,

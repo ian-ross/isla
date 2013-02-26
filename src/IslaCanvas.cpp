@@ -15,6 +15,7 @@ using namespace std;
 #include "IslaCanvas.hh"
 #include "IslaModel.hh"
 #include "IslaPreferences.hh"
+#include "ids.hh"
 
 
 // Canvas event table.
@@ -27,6 +28,8 @@ BEGIN_EVENT_TABLE(IslaCanvas, wxWindow)
   EVT_LEFT_UP          (IslaCanvas::OnMouse)
   EVT_MOUSEWHEEL       (IslaCanvas::OnMouse)
   EVT_ERASE_BACKGROUND (IslaCanvas::OnEraseBackground)
+  EVT_CONTEXT_MENU     (IslaCanvas::OnContextMenu)
+  EVT_MENU (ID_CTX_TOGGLE_ISLAND, IslaCanvas::OnContextMenuEvent)
 END_EVENT_TABLE()
 
 
@@ -78,6 +81,10 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   mouse = MOUSE_NOTHING;
   SetCursor(wxCursor(wxCURSOR_ARROW));
   SetBackgroundColour(*wxLIGHT_GREY);
+
+  // Create context menu.
+  popup = new wxMenu();
+  popup->Append(ID_CTX_TOGGLE_ISLAND, _("Landmass island toggle"));
 }
 
 
@@ -291,6 +298,20 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 //  * Dragging anywhere in the canvas while "zoom to selection" is
 //    active: rubberbands zoom box then triggers zoom when done.
 
+void IslaCanvas::OnMouse(wxMouseEvent &event)
+{
+  int x = event.GetX(), y = event.GetY();
+  bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
+  bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
+  if (event.GetEventType() == wxEVT_MOUSEWHEEL) {
+    if (xpanevent) Pan(0.25 * event.GetWheelRotation(), 0);
+    else           Pan(0, 0.25 * event.GetWheelRotation());
+  } else if (xpanevent || ypanevent || panning)
+    ProcessPan(event, xpanevent, ypanevent);
+  else if (zoom_selection) ProcessZoomSelection(event);
+  else if (edit)           ProcessEdit(event);
+}
+
 void IslaCanvas::ProcessPan(wxMouseEvent &event, bool xpan, bool ypan)
 {
   int x = event.GetX(), y = event.GetY();
@@ -373,18 +394,34 @@ void IslaCanvas::ProcessEdit(wxMouseEvent &event)
   } else { mouse = MOUSE_NOTHING;  return; }
 }
 
-void IslaCanvas::OnMouse(wxMouseEvent &event)
+
+// Right click menu.
+
+void IslaCanvas::OnContextMenu(wxContextMenuEvent &event)
 {
-  int x = event.GetX(), y = event.GetY();
-  bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
-  bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
-  if (event.GetEventType() == wxEVT_MOUSEWHEEL) {
-    if (xpanevent) Pan(0.25 * event.GetWheelRotation(), 0);
-    else           Pan(0, 0.25 * event.GetWheelRotation());
-  } else if (xpanevent || ypanevent || panning)
-    ProcessPan(event, xpanevent, ypanevent);
-  else if (zoom_selection) ProcessZoomSelection(event);
-  else if (edit)           ProcessEdit(event);
+  popup_pos = ScreenToClient(event.GetPosition());
+  PopupMenu(popup);
+}
+
+void IslaCanvas::OnContextMenuEvent(wxCommandEvent &event)
+{
+  switch (event.GetId()) {
+  case ID_CTX_TOGGLE_ISLAND: ToggleIsland(popup_pos); break;
+  }
+}
+
+
+// Toggle island state for landmass under a given point.
+
+void IslaCanvas::ToggleIsland(wxPoint pos)
+{
+  if (pos.y < yoff || pos.y > canh - yoff ||
+      pos.x < xoff || pos.x > canw - yoff)
+    return;
+  int c = lonToCol(XToLon(pos.x - xoff)), r = latToRow(YToLat(pos.y - yoff));
+  if (!model->maskVal(r, c)) return;
+  model->setIsIsland(r, c, !model->isIsland(r, c));
+  Refresh();
 }
 
 

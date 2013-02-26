@@ -51,6 +51,7 @@ public:
     else if (old != orig && val == orig) --grid_changes;
     mask(r, c) = val;
   }
+  void setIsIsland(int cr, int cc, bool val);
 
   // Check for changes in grid or islands from the values generated
   // from the originally loaded mask data.  These are used as

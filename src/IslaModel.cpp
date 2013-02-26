@@ -130,6 +130,18 @@ void IslaModel::recalcAll(void)
 }
 
 
+// Set island state of landmass around a given cell.
+
+void IslaModel::setIsIsland(int cr, int cc, bool val)
+{
+  if (!mask(cr, cc)) return;
+  int lm = landmass(cr, cc);
+  for (int r = 0; r < gr->nlat(); ++r)
+    for (int c = 0; c < gr->nlon(); ++c)
+      if (landmass(r, c) == lm) is_island(r, c) = val;
+}
+
+
 // Index land masses using flood fill.
 
 template<typename T>
@@ -178,8 +190,6 @@ void IslaModel::calcLandMasses(void)
   for (int r = 0; r < gr->nlat(); ++r)
     for (int c = 0; c < gr->nlon(); ++c)
       if (landmass(r, c) >= 0) lmsizes[landmass(r, c)] += gr->cellArea(r, c);
-  for (int i = 1; i < region; ++i)
-    cout << "Land mass " << i << ": " << lmsizes[i] << " km^2" << endl;
   set<int> island_regions;
   double island_threshold = IslaPreferences::get()->getIslandThreshold();
   for (int i = 1; i < region; ++i)

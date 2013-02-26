@@ -21,7 +21,7 @@ class IslaModel;
 class IslaCanvas: public wxWindow {
 public:
   IslaCanvas(wxWindow *parent, IslaModel *m);
-  virtual ~IslaCanvas() { }
+  virtual ~IslaCanvas() { delete popup; }
 
   // Pan and zoom behaviour.
   void Pan(int dx, int dy);
@@ -91,12 +91,16 @@ private:
   // Set minimum cell size in either direction.
   void SetMinCellSize(int cs) { scale = cs / min(minDlon, minDlat); }
 
+  // Toggle landmass state at given canvas point.
+  void ToggleIsland(wxPoint pos);
 
   DECLARE_EVENT_TABLE()
   void OnPaint(wxPaintEvent &e);
   void OnMouse(wxMouseEvent &e);
   void OnSize(wxSizeEvent &e);
   void OnEraseBackground(wxEraseEvent &e) { }
+  void OnContextMenu(wxContextMenuEvent& e);
+  void OnContextMenuEvent(wxCommandEvent &e);
 
   // Conversion from model (lat/lon) to canvas coordinates.
   double latToY(double lat) const { return maph / 2 - (lat - clat) * scale; }
@@ -125,6 +129,10 @@ private:
     MOUSE_ZOOM_SELECTION,
     MOUSE_EDIT
   };
+
+
+  wxMenu *popup;                // Popup context menu.
+  wxPoint popup_pos;            // Popup location (canvas coords).
 
   // Window layout parameters.  Dimensions are stored as exact double
   // values to avoid rounding problems.
