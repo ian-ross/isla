@@ -127,6 +127,8 @@ void IslaModel::recalcAll(void)
   calcLandMasses();
   ismask = GridData<int>(gr, 0);
   calcIsMask();
+  isles.clear();
+  calcIslands();
 }
 
 
@@ -222,4 +224,40 @@ void IslaModel::calcIsMask(void)
 }
 
 
+// Recalculate island information.
 
+void IslaModel::calcIslands(void)
+{
+  // For each island landmass...
+  for (int lm = 1; lm < lmsizes.size(); ++lm) {
+    int startr, startc;
+    bool found = false;
+    for (startr = 0; !found && startr < gr->nlat(); ++startr)
+      for (startc = 0; !found && startc < gr->nlon(); ++startc)
+        if (landmass(startr, startc) == lm) found = true;
+    if (!is_island(startr, startc)) continue;
+
+    // Determine the extent of the landmass.
+    int minr = startr, maxr = startr, minc = startc, maxc = startc;
+    for (int r = 0; r < gr->nlat(); ++r)
+      for (int c = 0; c < gr->nlon(); ++c)
+        if (landmass(r, c) == lm) {
+          maxr = max(r, maxr);  maxc = max(c, maxc);
+          minr = min(r, minr);  minc = min(c, minc);
+        }
+
+    // Make a bounding box (potentially broken -- no account of
+    // longitude wraparound).
+    IslandInfo is;
+    char tmp[15];
+    sprintf(tmp, "Landmass %d", lm);
+    is.name = tmp;
+    is.bbox = Rect(minc, minr, maxc - minc + 1, maxr - minr + 1);
+    is.segments.push_back(is.bbox);
+    isles[lm] = is;
+
+    cout << "Island: " << is.name
+         << "   l=" << is.bbox.l << " b=" << is.bbox.b
+         << " w=" << is.bbox.w << " h=" << is.bbox.h << endl;
+  }
+}

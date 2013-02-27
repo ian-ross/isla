@@ -200,6 +200,25 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     }
   }
 
+  // Draw island segments.
+  if (model->islands().size() > 0) {
+    dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 2));
+    for (map<int, IslaModel::IslandInfo>::const_iterator it =
+           model->islands().begin(); it != model->islands().end(); ++it) {
+      IslaModel::Rect bbox = it->second.bbox;
+      int xl = lonToX(iclons[bbox.l]);
+      int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
+      int yb = min(latToY(iclats[bbox.b]), canh);
+      int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
+      if (xl <= xr)
+        dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+      else {
+        dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+        dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+      }
+    }
+  }
+
   // Draw axes.
   dc.DestroyClippingRegion();
   dc.SetClippingRegion(taxis);

@@ -20,6 +20,21 @@ class IslaModel {
 public:
   enum GridType { HadCM3L, HadCM3, HadGEM2 };
 
+  // Structures used for recording island information.
+  struct Rect {
+    Rect() : l(0), b(0), w(0), h(0) { }
+    Rect(int inl, int inb, int inw, int inh) :
+      l(inl), b(inb), w(inw), h(inh) { }
+    int l, b, w, h;
+  };
+  struct IslandInfo {
+    IslandInfo() { }
+    std::string name;
+    Rect bbox;
+    std::vector<Rect> segments;
+  };
+
+
   // Create a default model: HadCM3L grid, no land, island threshold
   // set at 8.0E6 km^2 (big enough to include Australia).
   IslaModel();
@@ -43,6 +58,7 @@ public:
   bool isIsland(int r, int c) { return is_island(r, c); }
   int landMass(int r, int c) { return landmass(r, c); }
   int isMask(int r, int c) { return ismask(r, c); }
+  const std::map<int, IslandInfo> islands(void) const { return isles; }
 
   // Change data values.
   void setMask(int r, int c, bool val) {
@@ -64,7 +80,8 @@ public:
   void recalcAll(void);
 
   void calcLandMasses(void);    // Index land masses.
-  void calcIsMask(void);        // Calculation ISMASK.
+  void calcIsMask(void);        // Calculate ISMASK.
+  void calcIslands(void);       // Determine islands from scratch.
 
 private:
   static GridPtr makeGrid(GridType g);
@@ -81,6 +98,9 @@ private:
   std::vector<double> lmsizes;  // Land mass sizes.
   GridData<bool> is_island;     // Are land points part of an island?
   GridData<int> ismask;         // UM ISMASK for current mask.
+
+  // Map from landmass ID to island information.
+  std::map<int, IslandInfo> isles;
 };
 
 #endif
