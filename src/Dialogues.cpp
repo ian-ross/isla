@@ -70,6 +70,11 @@ IslaPrefDialogue::IslaPrefDialogue(wxWindow *p) :
   grid_choices.Add(_("HadGEM2"));
   grid_choice = new wxChoice(this, ID_PREFS_GRID_CHOICE,
                              wxDefaultPosition, wxDefaultSize, grid_choices);
+  switch (IslaPreferences::get()->getGrid()) {
+  case IslaModel::HadCM3L: grid_choice->SetSelection(0); break;
+  case IslaModel::HadCM3:  grid_choice->SetSelection(1); break;
+  case IslaModel::HadGEM2: grid_choice->SetSelection(2); break;
+  }
   b1_item1sizer->Add(new wxStaticText(this, wxID_ANY, _("Grid at startup:")),
                      0, wxALL|wxALIGN_CENTER_VERTICAL, 5);
   b1_item1sizer->Add(5, 5, 1, wxALL, 0);

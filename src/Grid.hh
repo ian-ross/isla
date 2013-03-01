@@ -10,31 +10,32 @@ class Grid {
 public:
   Grid(netCDF::NcFile &infile);
   Grid(int nlat, double lat0, double dlat, int nlon, double lon0, double dlon);
-  Grid(const Grid &other);
+  Grid(std::vector<double> inlat, int nlon, double lon0, double dlon);
+  Grid(const Grid &other) : lt(other.lt), ln(other.ln) { }
 
-  int nlat(void) const { return _lats.size(); }
-  int nlon(void) const { return _lons.size(); }
+  int nlat(void) const { return lt.size(); }
+  int nlon(void) const { return ln.size(); }
   double cellArea(int r, int c);
-  bool lats_reversed(void) const { return _lats_reversed; }
-  bool lons_reversed(void) const { return _lons_reversed; }
-  const std::vector<double> lats(void) const { return _lats; }
-  const std::vector<double> lons(void) const { return _lons; }
+  bool lats_reversed(void) const { return lt_rev; }
+  bool lons_reversed(void) const { return ln_rev; }
+  const std::vector<double> lats(void) const { return lt; }
+  const std::vector<double> lons(void) const { return ln; }
   double lat(unsigned int i) const {
     if (i < nlat())
-      return _lats[i];
+      return lt[i];
     else
       throw std::out_of_range("latitude index out of range in Grid");
   }
   double lon(unsigned int i) const {
     if (i < nlon())
-      return _lons[i];
+      return ln[i];
     else
       throw std::out_of_range("longitude index out of range in Grid");
   }
 
 private:
-  std::vector<double> _lats, _lons;
-  bool _lats_reversed, _lons_reversed;
+  std::vector<double> lt, ln;
+  bool lt_rev, ln_rev;
 };
 
 typedef boost::shared_ptr<Grid> GridPtr;

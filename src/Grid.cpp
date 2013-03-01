@@ -34,38 +34,36 @@ Grid::Grid(NcFile &infile)
   unsigned int nlat = latdim.getSize(), nlon = londim.getSize();
 
   // Read latitude and longitude variables.
-  _lats_reversed = _lons_reversed = false;
-  _lats.resize(nlat);  latvar.getVar(_lats.data());
-  if (_lats[0] > _lats[1]) {
-    reverse(_lats.begin(), _lats.end());
-    _lats_reversed = true;
+  lt_rev = ln_rev = false;
+  lt.resize(nlat);  latvar.getVar(lt.data());
+  if (lt[0] > lt[1]) {
+    reverse(lt.begin(), lt.end());
+    lt_rev = true;
   }
-  _lons.resize(nlon);  lonvar.getVar(_lons.data());
-  if (_lons[0] > _lons[1]) {
-    reverse(_lons.begin(), _lons.end());
-    _lons_reversed = true;
+  ln.resize(nlon);  lonvar.getVar(ln.data());
+  if (ln[0] > ln[1]) {
+    reverse(ln.begin(), ln.end());
+    ln_rev = true;
   }
 }
 
 Grid::Grid(int nlat, double lat0, double dlat,
            int nlon, double lon0, double dlon) :
-  _lats(nlat), _lons(nlon)
+  lt(nlat), ln(nlon)
 {
-  for (int i = 0; i < nlat; ++i) _lats[i] = lat0 + i * dlat;
-  for (int i = 0; i < nlon; ++i) _lons[i] = lon0 + i * dlon;
-  if (_lats[0] > _lats[1]) {
-    reverse(_lats.begin(), _lats.end());
-    _lats_reversed = true;
-  }
-  if (_lons[0] > _lons[1]) {
-    reverse(_lons.begin(), _lons.end());
-    _lons_reversed = true;
-  }
+  for (int i = 0; i < nlat; ++i) lt[i] = lat0 + i * dlat;
+  for (int i = 0; i < nlon; ++i) ln[i] = lon0 + i * dlon;
+  if (lt[0] > lt[1]) { reverse(lt.begin(), lt.end()); lt_rev = true; }
+  if (ln[0] > ln[1]) { reverse(ln.begin(), ln.end()); ln_rev = true; }
 }
 
-Grid::Grid(const Grid &other) :
-  _lats(other._lats), _lons(other._lons)
-{ }
+Grid::Grid(vector<double> lats, int nlon, double lon0, double dlon) :
+  lt(lats), ln(nlon)
+{
+  for (int i = 0; i < nlon; ++i) ln[i] = lon0 + i * dlon;
+  if (lt[0] > lt[1]) { reverse(lt.begin(), lt.end()); lt_rev = true; }
+  if (ln[0] > ln[1]) { reverse(ln.begin(), ln.end()); ln_rev = true; }
+}
 
 
 // Radius of Earth in km.
@@ -73,13 +71,13 @@ const double REARTH = 6370.0;
 
 double Grid::cellArea(int r, int c)
 {
-  double lat = _lats[r], lon = _lons[c];
-  double dlon = _lons[1] - _lons[0], dlat;
+  double lat = lt[r], lon = ln[c];
+  double dlon = ln[1] - ln[0], dlat;
   if (r == 0)
-    dlat = (_lats[1] - _lats[0]) / 2 + (_lats[0] - (-90.0));
+    dlat = (lt[1] - lt[0]) / 2 + (lt[0] - (-90.0));
   else if (r == nlat() - 1)
-    dlat = (_lats[nlat()-1] - _lats[nlat()-2]) / 2 + (90.0 - _lats[nlat()-1]);
-  else dlat = (_lats[r + 1] - _lats[r - 1]) / 2;
+    dlat = (lt[nlat()-1] - lt[nlat()-2]) / 2 + (90.0 - lt[nlat()-1]);
+  else dlat = (lt[r + 1] - lt[r - 1]) / 2;
   double dphi = dlon / 180.0 * M_PI, dtheta = dlat / 180.0 * M_PI;
   double theta = (90 - lat) / 180.0 * M_PI;
   return REARTH * REARTH * sin(theta) * dtheta * dphi;

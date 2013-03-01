@@ -17,32 +17,59 @@ using namespace netCDF;
 #include "IslaModel.hh"
 #include "IslaPreferences.hh"
 
+const double HadGEM2_lats[] = {
+  -90, -89, -88, -87, -86, -85, -84, -83, -82, -81, -80, -79, -78, -77,
+  -76, -75, -74, -73, -72, -71, -70, -69, -68, -67, -66, -65, -64, -63,
+  -62, -61, -60, -59, -58, -57, -56, -55, -54, -53, -52, -51, -50, -49,
+  -48, -47, -46, -45, -44, -43, -42, -41, -40, -39, -38, -37, -36, -35,
+  -34, -33, -32, -31.00039, -30.00231, -29.0073, -28.01687, -27.03253,
+  -26.05573, -25.08791, -24.13045, -23.1847, -22.25195, -21.33341,
+  -20.43026, -19.54357, -18.67437, -17.82357, -16.99202, -16.18048,
+  -15.38961, -14.61997, -13.87203, -13.14615, -12.44259, -11.76151,
+  -11.10297, -10.4669, -9.853161, -9.261481, -8.691499, -8.142748,
+  -7.614665, -7.106587, -6.617763, -6.147347, -5.694411, -5.257942,
+  -4.836853, -4.429985, -4.03611, -3.653943, -3.282142, -2.919319,
+  -2.564043, -2.214844, -1.870231, -1.528686, -1.188679, -0.8490555,
+  -0.5094325, -0.1698095, 0.1698095, 0.5094325, 0.8490555, 1.188679,
+  1.528686, 1.870231, 2.214844, 2.564043, 2.919319, 3.282142, 3.653943,
+  4.03611, 4.429985, 4.836853, 5.257942, 5.694411, 6.147347, 6.617763,
+  7.106587, 7.614665, 8.142748, 8.691499, 9.261481, 9.853161, 10.4669,
+  11.10297, 11.76151, 12.44259, 13.14615, 13.87203, 14.61997, 15.38961,
+  16.18048, 16.99202, 17.82357, 18.67437, 19.54357, 20.43026, 21.33341,
+  22.25195, 23.1847, 24.13045, 25.08791, 26.05573, 27.03253, 28.01687,
+  29.0073, 30.00231, 31.00039, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+  43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+  61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
+  79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90
+};
+
 GridPtr IslaModel::makeGrid(GridType g)
 {
   Grid *newgr;
   switch (g) {
   case HadCM3L: {
-    const int HADCM3L_NLAT = 37, HADCM3L_NLON = 48;
-    const double HADCM3L_LAT0 = 90.0, HADCM3L_LON0 = 0.0;
-    const double HADCM3L_DLAT = -5.0, HADCM3L_DLON = 7.5;
+    const int HADCM3L_NLAT = 73, HADCM3L_NLON = 96;
+    const double HADCM3L_LAT0 = -90.0, HADCM3L_LON0 = 0.0;
+    const double HADCM3L_DLAT = 2.5, HADCM3L_DLON = 3.75;
     newgr = new Grid(HADCM3L_NLAT, HADCM3L_LAT0, HADCM3L_DLAT,
                      HADCM3L_NLON, HADCM3L_LON0, HADCM3L_DLON);
     break;
   }
   case HadCM3: {
-    const int HADCM3_NLAT = 73, HADCM3_NLON = 96;
-    const double HADCM3_LAT0 = 89.5, HADCM3_LON0 = 0.0;
-    const double HADCM3_DLAT = -2.5, HADCM3_DLON = 3.75;
+    const int HADCM3_NLAT = 144, HADCM3_NLON = 288;
+    const double HADCM3_LAT0 = 89.375, HADCM3_LON0 = 0.0;
+    const double HADCM3_DLAT = -1.25, HADCM3_DLON = 1.25;
     newgr = new Grid(HADCM3_NLAT, HADCM3_LAT0, HADCM3_DLAT,
                      HADCM3_NLON, HADCM3_LON0, HADCM3_DLON);
     break;
   }
   case HadGEM2: {
-    const int HADGEM2_NLAT = 145, HADGEM2_NLON = 192;
-    const double HADGEM2_LAT0 = -90.0, HADGEM2_LON0 = 0.0;
-    const double HADGEM2_DLAT = 1.25, HADGEM2_DLON = 1.875;
-    newgr = new Grid(HADGEM2_NLAT, HADGEM2_LAT0, HADGEM2_DLAT,
-                     HADGEM2_NLON, HADGEM2_LON0, HADGEM2_DLON);
+    vector<double> lats(HadGEM2_lats,
+                        HadGEM2_lats + sizeof(HadGEM2_lats) / sizeof(double));
+    const int HADGEM2_NLON = 360;
+    const double HADGEM2_LON0 = 0.0;
+    const double HADGEM2_DLON = 1.0;
+    newgr = new Grid(lats, HADGEM2_NLON, HADGEM2_LON0, HADGEM2_DLON);
     break;
   }
   }
