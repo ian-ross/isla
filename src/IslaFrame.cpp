@@ -187,6 +187,7 @@ IslaFrame::IslaFrame() :
 
   // canvas
   canvas = new IslaCanvas(panel1, model);
+  canvas->SetFrame(this);
 
   // component layout
   wxBoxSizer *sizer1 = new wxBoxSizer(wxVERTICAL);
@@ -236,7 +237,7 @@ void IslaFrame::UpdateUI()
 void IslaFrame::OnMenu(wxCommandEvent &e)
 {
   switch (e.GetId()) {
-  case wxID_NEW: model->reset();  canvas->modelReset(model);  break;
+  case wxID_NEW: model->reset();  canvas->ModelReset(model);  break;
   case wxID_ABOUT: { IslaAboutDialogue d(this);  d.ShowModal();  break; }
   case ID_SELECT: canvas->SetSelect();  UpdateUI(); break;
   case ID_EDIT_MASK: canvas->SetEdit(); UpdateUI(); break;
@@ -334,7 +335,7 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
   if (maskvar != "") {
     try {
       model->loadMask(nc_file, maskvar);
-      canvas->modelReset(model);
+      canvas->ModelReset(model);
     } catch (std::exception &e) {
       wxMessageDialog msg(this, _("Failed to read mask data from NetCDF file"),
                           _("NetCDF error"), wxICON_ERROR);

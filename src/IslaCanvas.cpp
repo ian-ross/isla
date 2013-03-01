@@ -14,6 +14,7 @@ using namespace std;
 
 #include "IslaCanvas.hh"
 #include "IslaModel.hh"
+#include "IslaFrame.hh"
 #include "IslaPreferences.hh"
 #include "ids.hh"
 
@@ -39,6 +40,7 @@ END_EVENT_TABLE()
 IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
            wxFULL_REPAINT_ON_RESIZE),
+  frame(0),
   mouse(MOUSE_NOTHING), panning(false), zoom_selection(false), edit(false)
 #ifdef ISLA_DEBUG
   , sizingOverlay(false), regionOverlay(false), ismaskOverlay(false)
@@ -62,10 +64,11 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   // requested canvas dimensions.
   int nomw = 1000;
   mapw = nomw - 2 * bw;
-  scale = mapw / 360.0;
+  double tmpscale = mapw / 360.0;
+  scale = -1;
   double maplon = 360.0;
   double maplat = 180.0 + g->lat(1) - g->lat(0);
-  maph = maplat * scale;
+  maph = maplat * tmpscale;
   canw = mapw + 2 * bw;      canh = maph + 2 * bw;
   xoff = (canw - mapw) / 2;  yoff = (canh - maph) / 2;
 
@@ -74,7 +77,7 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   clat = 0.0;
 
   // Set up model-dependent values.
-  modelReset(m);
+  ModelReset(m, false);
 
   // UI setup.
   SetSize(wxDefaultCoord, wxDefaultCoord, canw, canh);
@@ -90,7 +93,7 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
 
 // Change of model.
 
-void IslaCanvas::modelReset(IslaModel *m)
+void IslaCanvas::ModelReset(IslaModel *m, bool refresh)
 {
   model = m;
   GridPtr g = model->grid();
@@ -123,8 +126,10 @@ void IslaCanvas::modelReset(IslaModel *m)
   iclats[n] = g->lat(n-1) + (iclats[n-1] - iclats[n-2]) / 2;
 
   // Trigger other required canvas recalculations.
-  SizeRecalc();
-  Refresh();
+  if (refresh) {
+    SizeRecalc();
+    Refresh();
+  }
 }
 
 
@@ -186,7 +191,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
   // Draw grid.
-  if (MinCellSize() >= 10) {
+  if (MinCellSize() >= 4) {
     dc.SetPen(wxPen(IslaPreferences::get()->getGridColour()));
     for (int i = 0, c = ilon0; i <= nhor; ++i, c = (c + 1) % nlon) {
       int x = lonToX(iclons[c]);
@@ -201,23 +206,23 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   }
 
   // Draw island segments.
-  if (model->islands().size() > 0) {
-    dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 2));
-    for (map<int, IslaModel::IslandInfo>::const_iterator it =
-           model->islands().begin(); it != model->islands().end(); ++it) {
-      IslaModel::Rect bbox = it->second.bbox;
-      int xl = lonToX(iclons[bbox.l]);
-      int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
-      int yb = min(latToY(iclats[bbox.b]), canh);
-      int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
-      if (xl <= xr)
-        dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-      else {
-        dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
-        dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
-      }
-    }
-  }
+  // if (model->islands().size() > 0) {
+  //   dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 2));
+  //   for (map<int, IslaModel::IslandInfo>::const_iterator it =
+  //          model->islands().begin(); it != model->islands().end(); ++it) {
+  //     IslaModel::Rect bbox = it->second.bbox;
+  //     int xl = lonToX(iclons[bbox.l]);
+  //     int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
+  //     int yb = min(latToY(iclats[bbox.b]), canh);
+  //     int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
+  //     if (xl <= xr)
+  //       dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+  //     else {
+  //       dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+  //       dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+  //     }
+  //   }
+  // }
 
   // Draw axes.
   dc.DestroyClippingRegion();
@@ -454,6 +459,7 @@ void IslaCanvas::OnSize(wxSizeEvent &event)
   canh = sz.GetHeight();
   SizeRecalc();
   Refresh();
+  if (frame) frame->UpdateUI();
 }
 
 
@@ -595,7 +601,8 @@ void IslaCanvas::Pan(int dx, int dy)
 void IslaCanvas::ZoomScale(double zfac)
 {
   scale *= zfac;
-  if (MinCellSize() < 2) SetMinCellSize(2);
+  double fitscale = FitScale();
+  if (scale < fitscale) scale = fitscale;
   if (MinCellSize() > 64) SetMinCellSize(64);
   SizeRecalc();
   Refresh();
@@ -606,13 +613,21 @@ void IslaCanvas::ZoomScale(double zfac)
 
 void IslaCanvas::ZoomToFit(void)
 {
+  scale = FitScale();
+  SizeRecalc();
+  Refresh();
+}
+
+
+// Find scale to fit map to canvas.
+
+double IslaCanvas::FitScale(void) const
+{
   GridPtr g = model->grid();
   double possmapw = canw - 2 * bw, possmaph = canh - 2 * bw;
   double fitwscale = possmapw / 360.0;
   double fithscale = possmaph / (180.0 + g->lat(1) - g->lat(0));
-  scale = min(fitwscale, fithscale);
-  SizeRecalc();
-  Refresh();
+  return min(fitwscale, fithscale);
 }
 
 
@@ -645,6 +660,7 @@ void IslaCanvas::DoZoomToSelection(int x0, int y0, int x1, int y1)
   if (MinCellSize() > 64) SetMinCellSize(64);
   SizeRecalc();
   Refresh();
+  if (frame) frame->UpdateUI();
 }
 
 // Recalculate scaling information for canvas after resize, zoom, or
@@ -652,7 +668,10 @@ void IslaCanvas::DoZoomToSelection(int x0, int y0, int x1, int y1)
 
 void IslaCanvas::SizeRecalc(void)
 {
-  mapw = min(360.0 * scale, canw - bw * 2);
+  if (scale < 0) {
+    mapw = canw - bw * 2;
+    scale = FitScale();
+  } else mapw = min(360.0 * scale, canw - bw * 2);
   xoff = (canw - mapw) / 2;
   GridPtr g = model->grid();
   double maphb = maph;

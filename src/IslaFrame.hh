@@ -12,12 +12,12 @@
 #include "wx/wx.h"
 
 #include "IslaModel.hh"
-class IslaCanvas;
+#include "IslaCanvas.hh"
 
 class IslaFrame : public wxFrame {
 public:
   IslaFrame();
-  virtual ~IslaFrame() { }
+  virtual ~IslaFrame() { canvas->SetFrame(0); }
 
   void UpdateUI();
 

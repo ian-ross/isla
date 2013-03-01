@@ -14,6 +14,7 @@
 #include "wx/wx.h"
 
 class IslaModel;
+class IslaFrame;
 
 // Note that in IslaCanvas, all cell coordinates are
 // named i, j, while screen coordinates are named x, y.
@@ -34,7 +35,7 @@ public:
     SetCursor(wxCursor(wxCURSOR_CROSS));
   }
   bool ZoomInOK(void) const { return MinCellSize() < 64; }
-  bool ZoomOutOK(void) const { return MinCellSize() > 2; }
+  bool ZoomOutOK(void) const { return scale > FitScale(); }
   bool Panning(void) const { return panning; }
   bool Editing(void) const { return edit; }
   void SetPanning(bool pan) {
@@ -51,12 +52,13 @@ public:
     edit = true;
     SetCursor(wxCursor(wxCURSOR_PENCIL));
   }
+  void SetFrame(IslaFrame *f) { frame = f; }
 
   // View management
   double GetScale(void) const { return scale; }
 
   // Model changed...
-  void modelReset(IslaModel *m);
+  void ModelReset(IslaModel *m, bool refresh = true);
 
 #ifdef ISLA_DEBUG
   bool sizingOverlay;           // Display sizing information?
@@ -64,7 +66,16 @@ public:
   bool ismaskOverlay;           // Display ISMASK information?
 #endif
 
+  void OnPaint(wxPaintEvent &e);
+  void OnMouse(wxMouseEvent &e);
+  void OnSize(wxSizeEvent &e);
+  void OnEraseBackground(wxEraseEvent &e) { }
+  void OnContextMenu(wxContextMenuEvent& e);
+  void OnContextMenuEvent(wxCommandEvent &e);
+
 private:
+  DECLARE_EVENT_TABLE()
+
   // Draw axis labels.
   void axisLabels(wxDC &dc, bool horiz, int yOrX,
                   const std::vector<int> &xOrYs,
@@ -85,22 +96,17 @@ private:
 
   // Find minimum cell size in either direction.
   double MinCellSize(void) const {
-    return min(minDlon * scale, minDlat * scale);
+    return std::min(minDlon * scale, minDlat * scale);
   }
 
   // Set minimum cell size in either direction.
-  void SetMinCellSize(int cs) { scale = cs / min(minDlon, minDlat); }
+  void SetMinCellSize(int cs) { scale = cs / std::min(minDlon, minDlat); }
+
+  // Find scale to fit map to canvas.
+  double FitScale(void) const;
 
   // Toggle landmass state at given canvas point.
   void ToggleIsland(wxPoint pos);
-
-  DECLARE_EVENT_TABLE()
-  void OnPaint(wxPaintEvent &e);
-  void OnMouse(wxMouseEvent &e);
-  void OnSize(wxSizeEvent &e);
-  void OnEraseBackground(wxEraseEvent &e) { }
-  void OnContextMenu(wxContextMenuEvent& e);
-  void OnContextMenuEvent(wxCommandEvent &e);
 
   // Conversion from model (lat/lon) to canvas coordinates.
   double latToY(double lat) const { return maph / 2 - (lat - clat) * scale; }
@@ -131,6 +137,7 @@ private:
   };
 
 
+  IslaFrame *frame;             // Parent frame.
   wxMenu *popup;                // Popup context menu.
   wxPoint popup_pos;            // Popup location (canvas coords).
 
