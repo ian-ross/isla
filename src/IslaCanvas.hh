@@ -64,6 +64,7 @@ public:
   bool sizingOverlay;           // Display sizing information?
   bool regionOverlay;           // Display region information?
   bool ismaskOverlay;           // Display ISMASK information?
+  bool isIslandOverlay;         // Display "is island?" information?
 #endif
 
   void OnPaint(wxPaintEvent &e);

@@ -27,6 +27,8 @@ private:
   void OnOpen(wxCommandEvent &e);
   void OnLoadMask(wxCommandEvent &e);
   void OnSaveMask(wxCommandEvent &e);
+  void OnLoadComparison(wxCommandEvent &e);
+  void OnClearComparison(wxCommandEvent &e);
   void OnZoom(wxCommandEvent &e);
   void OnPreferences(wxCommandEvent &e);
   void OnExit(wxCommandEvent &e);

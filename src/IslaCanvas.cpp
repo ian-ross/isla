@@ -43,7 +43,8 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   frame(0),
   mouse(MOUSE_NOTHING), panning(false), zoom_selection(false), edit(false)
 #ifdef ISLA_DEBUG
-  , sizingOverlay(false), regionOverlay(false), ismaskOverlay(false)
+  , sizingOverlay(false), regionOverlay(false)
+  , ismaskOverlay(false), isIslandOverlay(false)
 #endif
 {
   // Calculate border width and border text offset.
@@ -206,23 +207,38 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   }
 
   // Draw island segments.
-  // if (model->islands().size() > 0) {
-  //   dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 2));
-  //   for (map<int, IslaModel::IslandInfo>::const_iterator it =
-  //          model->islands().begin(); it != model->islands().end(); ++it) {
-  //     IslaModel::Rect bbox = it->second.bbox;
-  //     int xl = lonToX(iclons[bbox.l]);
-  //     int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
-  //     int yb = min(latToY(iclats[bbox.b]), canh);
-  //     int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
-  //     if (xl <= xr)
-  //       dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-  //     else {
-  //       dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
-  //       dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
-  //     }
-  //   }
-  // }
+  if (model->islands().size() > 0) {
+    dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 3));
+    const map<int, IslaModel::IslandInfo> &isles = model->islands();
+    for (map<int, IslaModel::IslandInfo>::const_iterator it =
+           isles.begin(); it != isles.end(); ++it) {
+      IslaModel::Rect bbox = it->second.bbox;
+      int xl = lonToX(iclons[bbox.l]);
+      int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
+      int yb = min(latToY(iclats[bbox.b]), canh);
+      int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
+      if (xl <= xr) {
+        dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+      }
+      else {
+        dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+        dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+      }
+      if (it->second.wraparound) {
+        IslaModel::Rect bbox = it->second.bbox2;
+        int xl = lonToX(iclons[bbox.l]);
+        int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
+        int yb = min(latToY(iclats[bbox.b]), canh);
+        int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
+        if (xl <= xr)
+          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+        else {
+          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+        }
+      }
+    }
+  }
 
   // Draw axes.
   dc.DestroyClippingRegion();
@@ -288,6 +304,29 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
       int x = xoff + lonToX(g->lon(c)) - tw / 2;
       for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
         txt.Printf(_("%d"), model->isMask(r, c));
+        int y = latToY(g->lat(r));
+        dc.DrawText(txt, x, yoff + y - th / 2);
+      }
+    }
+  }
+  if (isIslandOverlay) {
+    wxCoord tw, th;
+    dc.SetFont(*wxSWISS_FONT);
+    dc.GetTextExtent(_("X"), &tw, &th);
+    int cs = MinCellSize();
+    wxFont font(*wxSWISS_FONT);
+    if (th > 0.9 * cs) {
+      font.SetPointSize(font.GetPointSize() * 0.9 * cs / th);
+      dc.SetFont(font);
+    }
+    dc.SetTextForeground(*wxGREEN);
+    dc.SetClippingRegion(xoff, yoff, mapw, maph);
+    wxString txt;
+    GridPtr g = model->grid();
+    for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon) {
+      int x = xoff + lonToX(g->lon(c)) - tw / 2;
+      for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
+        txt = model->isIsland(r, c) ? _("X") : _("");
         int y = latToY(g->lat(r));
         dc.DrawText(txt, x, yoff + y - th / 2);
       }

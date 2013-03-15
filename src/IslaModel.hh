@@ -30,7 +30,9 @@ public:
   struct IslandInfo {
     IslandInfo() { }
     std::string name;
+    bool wraparound;
     Rect bbox;
+    Rect bbox2;
     std::vector<Rect> segments;
   };
 

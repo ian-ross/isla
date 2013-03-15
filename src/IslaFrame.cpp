@@ -48,8 +48,8 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (wxID_NEW,              IslaFrame::OnMenu)
   EVT_MENU  (wxID_OPEN,             IslaFrame::OnLoadMask)
   EVT_MENU  (wxID_SAVEAS,           IslaFrame::OnSaveMask)
-  EVT_MENU  (ID_IMPORT_ISLCMP_DATA, IslaFrame::OnMenu)
-  EVT_MENU  (ID_CLEAR_ISLCMP_DATA,  IslaFrame::OnMenu)
+  EVT_MENU  (ID_IMPORT_ISLCMP_DATA, IslaFrame::OnLoadComparison)
+  EVT_MENU  (ID_CLEAR_ISLCMP_DATA,  IslaFrame::OnClearComparison)
   EVT_MENU  (ID_EXPORT_ISLAND_DATA, IslaFrame::OnMenu)
   EVT_MENU  (wxID_PREFERENCES,      IslaFrame::OnPreferences)
   EVT_MENU  (wxID_EXIT,             IslaFrame::OnExit)
@@ -66,9 +66,10 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (wxID_ABOUT,            IslaFrame::OnMenu)
   EVT_CLOSE (                       IslaFrame::OnClose)
 #ifdef ISLA_DEBUG
-  EVT_MENU  (ID_DEBUG_SIZE_OVERLAY,   IslaFrame::OnMenu)
-  EVT_MENU  (ID_DEBUG_REGION_OVERLAY, IslaFrame::OnMenu)
-  EVT_MENU  (ID_DEBUG_ISMASK_OVERLAY, IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_SIZE_OVERLAY,     IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_REGION_OVERLAY,   IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_ISMASK_OVERLAY,   IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_ISISLAND_OVERLAY, IslaFrame::OnMenu)
 #endif
 END_EVENT_TABLE()
 
@@ -132,6 +133,9 @@ IslaFrame::IslaFrame() :
                              _("Toggle region overlay"));
   menuDebug->AppendCheckItem(ID_DEBUG_ISMASK_OVERLAY, _("ISMASK overlay"),
                              _("Toggle ISMASK overlay"));
+  menuDebug->AppendCheckItem(ID_DEBUG_ISISLAND_OVERLAY,
+                             _("\"Is island?\" overlay"),
+                             _("Toggle \"is island?\" overlay"));
   menuBar->Append(menuDebug, _("Debug"));
 #endif
 
@@ -254,6 +258,10 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
     canvas->ismaskOverlay = !canvas->ismaskOverlay;
     canvas->Refresh();
     break;
+  case ID_DEBUG_ISISLAND_OVERLAY:
+    canvas->isIslandOverlay = !canvas->isIslandOverlay;
+    canvas->Refresh();
+    break;
 #endif
   }
 }
@@ -366,6 +374,16 @@ void IslaFrame::OnSaveMask(wxCommandEvent &WXUNUSED(e))
     msg.ShowModal();
     cout << "EXCEPTION: " << e.what() << endl;
   }
+}
+
+void IslaFrame::OnLoadComparison(wxCommandEvent &WXUNUSED(e))
+{
+
+}
+
+void IslaFrame::OnClearComparison(wxCommandEvent &WXUNUSED(e))
+{
+
 }
 
 void IslaFrame::OnZoom(wxCommandEvent &e)
