@@ -378,12 +378,32 @@ void IslaFrame::OnSaveMask(wxCommandEvent &WXUNUSED(e))
 
 void IslaFrame::OnLoadComparison(wxCommandEvent &WXUNUSED(e))
 {
+  wxFileDialog filedlg(this,
+                       _("Choose a file to load comparison data from "
+                         "(either a UM ocean dump file or an ASCII island "
+                         "data file)"),
+                       wxEmptyString,
+                       wxEmptyString,
+                       _("Island data files (*.isl;*.dat)|*.isl;*.dat|"
+                         "All files (*.*)|*.*"),
+                       wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
+  if (filedlg.ShowModal() == wxID_CANCEL) return;
+
+  wxString island_file(filedlg.GetPath());
+  try {
+    canvas->loadComparisonIslands(island_file);
+  } catch (std::exception &e) {
+    wxMessageDialog msg(this, _("Failed to load island data"),
+                        _("File access error"), wxICON_ERROR);
+    msg.ShowModal();
+    cout << "EXCEPTION: " << e.what() << endl;
+  }
 }
 
 void IslaFrame::OnClearComparison(wxCommandEvent &WXUNUSED(e))
 {
-
+  canvas->clearComparisonIslands();
 }
 
 void IslaFrame::OnZoom(wxCommandEvent &e)

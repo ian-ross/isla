@@ -10,6 +10,7 @@
 #define _H_ISLAMODEL_
 
 #include <string>
+#include <vector>
 
 #include "GridData.hh"
 
@@ -30,9 +31,6 @@ public:
   struct IslandInfo {
     IslandInfo() { }
     std::string name;
-    bool wraparound;
-    Rect bbox;
-    Rect bbox2;
     std::vector<Rect> segments;
   };
 
@@ -84,6 +82,8 @@ public:
   void calcLandMasses(void);    // Index land masses.
   void calcIsMask(void);        // Calculate ISMASK.
   void calcIslands(void);       // Determine islands from scratch.
+
+  static void loadIslands(wxString fname, std::vector<IslandInfo> &isles);
 
 private:
   static GridPtr makeGrid(GridType g);

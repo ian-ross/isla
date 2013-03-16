@@ -13,7 +13,7 @@
 
 #include "wx/wx.h"
 
-class IslaModel;
+#include "IslaModel.hh"
 class IslaFrame;
 
 // Note that in IslaCanvas, all cell coordinates are
@@ -53,6 +53,16 @@ public:
     SetCursor(wxCursor(wxCURSOR_PENCIL));
   }
   void SetFrame(IslaFrame *f) { frame = f; }
+
+  // Handle island comparison data.
+  void loadComparisonIslands(wxString fname) {
+    IslaModel::loadIslands(fname, compisles);
+    Refresh();
+  }
+  void clearComparisonIslands(void) {
+    compisles.clear();
+    Refresh();
+  }
 
   // View management
   double GetScale(void) const { return scale; }
@@ -180,6 +190,9 @@ private:
   int celllablimit;             // Maximum label width for axis
                                 // borders, calculated as the text
                                 // extent for the string "888".
+
+  // Comparison island information.
+  std::vector<IslaModel::IslandInfo> compisles;
 
   // Current axis label positions and text.
   std::vector<int> laxpos;  std::vector<wxString> laxlab;

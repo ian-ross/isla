@@ -11,6 +11,10 @@
 #include <stack>
 using namespace std;
 
+#include <wx/ffile.h>
+#include <wx/textfile.h>
+#include <wx/tokenzr.h>
+
 #include "ncFile.h"
 using namespace netCDF;
 
@@ -271,7 +275,6 @@ void IslaModel::calcIslands(void)
     char tmp[15];
     sprintf(tmp, "Landmass %d", lm);
     is.name = tmp;
-    is.wraparound = false;
 
     // Determine the extent of the landmass in simple-minded possible
     // way.
@@ -283,12 +286,11 @@ void IslaModel::calcIslands(void)
           minr = min(r, minr);  minc = min(c, minc);
         }
 
-    // If this really is a simple case, make a bounding box (no
+    // If this really is a simple case, make a single segment (no
     // longitude wraparound).
-    if (!(maxc == gr->nlon() - 1 && minc == 0)) {
-      is.bbox = Rect(minc, minr, maxc - minc + 1, maxr - minr + 1);
-      is.segments.push_back(is.bbox);
-    } else {
+    if (!(maxc == gr->nlon() - 1 && minc == 0))
+      is.segments.push_back(Rect(minc, minr, maxc - minc + 1, maxr - minr + 1));
+    else {
       // Possible wraparound.  If this landmass is at all longitudes
       // then we just need a single rectangle (e.g. Antarctica).
       bool everywhere = true, found;
@@ -300,13 +302,11 @@ void IslaModel::calcIslands(void)
         if (!found) { everywhere = false;  break; }
       }
       --maxcconn;
-      if (everywhere) {
-        is.bbox = Rect(minc, minr, maxc - minc + 1, maxr - minr + 1);
-        is.segments.push_back(is.bbox);
-      } else {
+      if (everywhere)
+        is.segments.push_back(Rect(0, minr, gr->nlon() - 1, maxr - minr + 1));
+      else {
         // Longitude wraparound, so we're going to need two bounding
         // box rectangles.
-        is.wraparound = true;
         int mincconn;
         for (mincconn = gr->nlon() - 1; mincconn >= 0; --mincconn) {
           found = false;
@@ -315,12 +315,195 @@ void IslaModel::calcIslands(void)
           if (!found) break;
         }
         ++mincconn;
-        is.bbox = Rect(minc, minr, maxcconn - minc + 1, maxr - minr + 1);
-        is.segments.push_back(is.bbox);
-        is.bbox2 = Rect(mincconn, minr, maxc - mincconn + 1, maxr - minr + 1);
-        is.segments.push_back(is.bbox2);
+        is.segments.push_back(Rect(minc, minr,
+                                   maxcconn - minc + 1, maxr - minr + 1));
+        is.segments.push_back(Rect(mincconn, minr,
+                                   maxc - mincconn + 1, maxr - minr + 1));
       }
     }
     isles[lm] = is;
   }
 }
+
+static void swap_bytes(void *buf, int nbytes, int n)
+{
+  unsigned char *cbuf = static_cast<unsigned char *>(buf);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < nbytes / 2; ++j) {
+      unsigned char temp = cbuf[j];
+      cbuf[j] = cbuf[nbytes - j - 1];
+      cbuf[nbytes - j - 1] = temp;
+    }
+    cbuf += nbytes;
+  }
+}
+
+static void readIslandDataFromDump(wxFFile &fp,
+                                   vector<IslaModel::IslandInfo> &isl)
+{
+  // Check on the dump file type.  We only support 64-bit IEEE files,
+  // but we handle byte-swapping OK.
+  // ==> THIS RELIES ON longs BEING 64 BITS!
+  long ibuf[2];
+  fp.Read(ibuf, 2 * sizeof(long));
+  bool swapped = false;
+  if (ibuf[1] < 1 || ibuf[1] > 4) {
+    swapped = true;
+    swap_bytes(ibuf, sizeof(long), 2);
+    if (ibuf[1] < 1 || ibuf[1] > 4)
+      throw runtime_error("Dump files must be 64-bit byte-swapped IEEE");
+  }
+  if (ibuf[1] != 2)
+    throw runtime_error("Dump file is not an ocean dump");
+
+  // Read the fixed header and find the offset for the island data.
+  long fixhd[256];
+  fp.Seek(0);
+  fp.Read(fixhd, 256 * sizeof(long));
+  if (swapped) swap_bytes(fixhd, sizeof(long), 256);
+  long extra_data_offset = fixhd[130-1];
+  long extra_data_length = fixhd[131-1];
+
+  // Read the extra constants data.
+  double data[extra_data_length];
+  fp.Seek((extra_data_offset - 1) * sizeof(double));
+  fp.Read(data, extra_data_length * sizeof(double));
+  if (swapped) swap_bytes(data, sizeof(double), extra_data_length);
+
+  // Set up island data.
+  isl.resize(data[0]);
+  int iisl = 0, idata = 1;
+  vector<int> isis, ieis, jsis, jeis;
+  for (int iisl = 0; iisl < isl.size(); ++iisl){
+    char tmp[32];
+    sprintf(tmp, "Island %d", iisl + 1);
+    isl[iisl].name = tmp;
+    int nseg = data[idata++];
+    if (idata + nseg * 4 > extra_data_length)
+      throw runtime_error("Format error in dump file island data");
+    isis.clear();  ieis.clear();  jsis.clear();  jeis.clear();
+    for (int i = 0; i < nseg; ++i) isis.push_back(data[idata++] - 1);
+    for (int i = 0; i < nseg; ++i) ieis.push_back(data[idata++] - 1);
+    for (int i = 0; i < nseg; ++i) jsis.push_back(data[idata++] - 1);
+    for (int i = 0; i < nseg; ++i) jeis.push_back(data[idata++] - 1);
+    isl[iisl].segments.resize(nseg);
+    for (int i = 0; i < nseg; ++i)
+      isl[iisl].segments[i] =
+        IslaModel::Rect(isis[i], jsis[i], ieis[i]-isis[i], jeis[i]-jsis[i]);
+  }
+}
+
+static void parseASCIIIslands(wxString fname,
+                              vector<IslaModel::IslandInfo> &isl)
+{
+  // Read whole file contents.
+  wxTextFile fp(fname);
+  if (!fp.Open())
+    throw runtime_error(string("Cannot open file: ") +
+                        string(fname.char_str()));
+
+  // Process line by line.
+  enum State { BEFORE_COUNT, BEFORE_SEGS, READING_SEGS };
+  State state = BEFORE_COUNT;
+  int iisl = 0, istep, iseg, nseg;
+  wxString islandname = _("");
+  vector<int> isis, ieis, jsis, jeis;
+  for (wxString line = fp.GetFirstLine(); !fp.Eof(); line = fp.GetNextLine()) {
+    line = line.Trim();
+    if (line.Len() == 0) continue;
+    if (line[0] == wxChar('#')) {
+      // Comment line: if this is in the "BEFORE_SEGS" state, we
+      // assume that it's a comment giving the name of the island.
+      if (state == BEFORE_SEGS) islandname = line.Mid(1).Trim();
+    } else {
+      // Should be a whitespace separated string of integers.
+      wxStringTokenizer tok(line);
+      while (tok.HasMoreTokens()) {
+        long val;
+        if (!tok.GetNextToken().ToLong(&val))
+          throw runtime_error("Failed to convert integer");
+        switch (state) {
+        case BEFORE_COUNT:
+          isl.resize(val);
+          state = BEFORE_SEGS;
+          break;
+        case BEFORE_SEGS: {
+          if (islandname.Len() == 0) {
+            char tmp[32];
+            sprintf(tmp, "Island %d", iisl + 1);
+            isl[iisl].name = tmp;
+          } else isl[iisl].name = islandname.ToAscii();
+          islandname = _("");
+          isis.clear();  ieis.clear();  jsis.clear();  jeis.clear();
+          nseg = val;  istep = 0;  iseg = 0;
+          state = READING_SEGS;
+          break;
+        }
+        case READING_SEGS: {
+          switch (istep) {
+          case 0: isis.push_back(val - 1); break;
+          case 1: ieis.push_back(val - 1); break;
+          case 2: jsis.push_back(val - 1); break;
+          case 3: jeis.push_back(val - 1); break;
+          }
+          if (++iseg == nseg) {
+            iseg = 0;
+            if (++istep == 4) {
+              isl[iisl].segments.resize(nseg);
+              for (int i = 0; i < nseg; ++i)
+                isl[iisl].segments[i] =
+                  IslaModel::Rect(isis[i], jsis[i],
+                                  ieis[i]-isis[i], jeis[i]-jsis[i]);
+              ++iisl;
+              state = BEFORE_SEGS;
+            }
+          }
+          break;
+        }
+        }
+      }
+    }
+  }
+}
+
+void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
+{
+  // Check that the file exists.
+  wxFFile fp(fname, _("rb"));
+  if (!fp.IsOpened())
+    throw runtime_error(string("Cannot open file: ") +
+                        string(fname.char_str()));
+
+  // Determine whether it's a binary file or an ASCII file.  This is a
+  // bit hit-and-miss: just read 128 bytes from the file and check
+  // whether any of the values are outside the ASCII 7-bit range.
+  char buff[128];
+  size_t nread = fp.Read(buff, 128);
+  fp.Seek(0);
+  bool binary = false;
+  for (int i = 0; i < nread; ++i) if (buff[i] & 0x80) { binary = true; break; }
+
+  // Read raw island data from dump file, checking that it's a
+  // suitable ocean dump file as we do so, or parse an ASCII islands
+  // file.
+  vector<IslandInfo> isltmp;
+  if (binary)
+    readIslandDataFromDump(fp, isltmp);
+  else
+    parseASCIIIslands(fname, isltmp);
+
+  // Check...
+  cout << "#islands = " << isltmp.size() << endl;
+  for (int i = 0; i < isltmp.size(); ++i) {
+    vector<Rect> &ss = isltmp[i].segments;
+    cout << "  " << i+1 << ": " << isltmp[i].name
+         << " (" << ss.size() << ")" << endl;
+    for (int j = 0; j < ss.size(); ++j)
+      cout << "    L:" << ss[j].l << " B:" << ss[j].b
+           << " W:" << ss[j].w << " H:" << ss[j].h << endl;
+  }
+
+  // Set up new island data.
+  isles = isltmp;
+}
+

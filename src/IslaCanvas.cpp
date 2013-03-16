@@ -212,26 +212,42 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     const map<int, IslaModel::IslandInfo> &isles = model->islands();
     for (map<int, IslaModel::IslandInfo>::const_iterator it =
            isles.begin(); it != isles.end(); ++it) {
-      IslaModel::Rect bbox = it->second.bbox;
-      int xl = lonToX(iclons[bbox.l]);
-      int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
-      int yb = min(latToY(iclats[bbox.b]), canh);
-      int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
-      if (xl <= xr) {
-        dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-      }
-      else {
-        dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
-        dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
-      }
-      if (it->second.wraparound) {
-        IslaModel::Rect bbox = it->second.bbox2;
-        int xl = lonToX(iclons[bbox.l]);
-        int xr = lonToX(iclons[(bbox.l + bbox.w) % nlon]);
-        int yb = min(latToY(iclats[bbox.b]), canh);
-        int yt = max(0.0, latToY(iclats[bbox.b + bbox.h]));
-        if (xl <= xr)
+      const vector<IslaModel::Rect> &segs = it->second.segments;
+      for (vector<IslaModel::Rect>::const_iterator jt = segs.begin();
+           jt != segs.end(); ++jt) {
+        int xl = lonToX(g->lon(jt->l));
+        int xr = lonToX(g->lon((jt->l + jt->w) % nlon));
+        int yb = min(latToY(g->lat(jt->b)), canh);
+        int yt = jt->b + jt->h >= g->nlat() ?
+          canh : max(0.0, latToY(g->lat(jt->b + jt->h)));
+        if (xl <= xr) {
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+        }
+        else {
+          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+        }
+      }
+    }
+  }
+
+  // Draw island comparison segments.
+  if (model->islands().size() > 0) {
+    dc.SetPen(wxPen(IslaPreferences::get()->getCompOutlineColour(),
+                    3, wxSHORT_DASH));
+    for (vector<IslaModel::IslandInfo>::const_iterator it =
+           compisles.begin(); it != compisles.end(); ++it) {
+      const vector<IslaModel::Rect> &segs = it->segments;
+      for (vector<IslaModel::Rect>::const_iterator jt = segs.begin();
+           jt != segs.end(); ++jt) {
+        int xl = lonToX(g->lon(jt->l));
+        int xr = lonToX(g->lon((jt->l + jt->w) % nlon));
+        int yb = min(latToY(g->lat(jt->b)), canh);
+        int yt = jt->b + jt->h >= g->nlat() ?
+          canh : max(0.0, latToY(g->lat(jt->b + jt->h)));
+        if (xl <= xr) {
+          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+        }
         else {
           dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
           dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
