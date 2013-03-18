@@ -19,6 +19,7 @@ using namespace std;
 using namespace netCDF;
 
 #include "IslaModel.hh"
+#include "IslaCompute.hh"
 #include "IslaPreferences.hh"
 
 const double HadGEM2_lats[] = {
@@ -154,7 +155,7 @@ void IslaModel::saveMask(std::string file)
 
 void IslaModel::recalcAll(void)
 {
-  landmass = GridData<int>(gr, 0);
+  landmass = GridData<LMass>(gr, 0);
   calcLandMasses();
   ismask = GridData<int>(gr, 0);
   calcIsMask();
@@ -168,7 +169,7 @@ void IslaModel::recalcAll(void)
 void IslaModel::setIsIsland(int cr, int cc, bool val)
 {
   if (!mask(cr, cc)) return;
-  int lm = landmass(cr, cc);
+  LMass lm = landmass(cr, cc);
   for (int r = 0; r < gr->nlat(); ++r)
     for (int c = 0; c < gr->nlon(); ++c)
       if (landmass(r, c) == lm) is_island(r, c) = val;
@@ -259,8 +260,10 @@ void IslaModel::calcIsMask(void)
 
 void IslaModel::calcIslands(void)
 {
+  IslaCompute compute(landmass);
+
   // For each island landmass...
-  for (int lm = 1; lm < lmsizes.size(); ++lm) {
+  for (LMass lm = 1; lm < lmsizes.size(); ++lm) {
     int startr, startc;
     bool found = false;
     for (startr = 0; startr < gr->nlat(); ++startr) {
@@ -275,52 +278,7 @@ void IslaModel::calcIslands(void)
     char tmp[15];
     sprintf(tmp, "Landmass %d", lm);
     is.name = tmp;
-
-    // Determine the extent of the landmass in simple-minded possible
-    // way.
-    int minr = startr, maxr = startr, minc = startc, maxc = startc;
-    for (int r = 0; r < gr->nlat(); ++r)
-      for (int c = 0; c < gr->nlon(); ++c)
-        if (landmass(r, c) == lm) {
-          maxr = max(r, maxr);  maxc = max(c, maxc);
-          minr = min(r, minr);  minc = min(c, minc);
-        }
-
-    // If this really is a simple case, make a single segment (no
-    // longitude wraparound).
-    if (!(maxc == gr->nlon() - 1 && minc == 0))
-      is.segments.push_back(Rect(minc, minr, maxc - minc + 1, maxr - minr + 1));
-    else {
-      // Possible wraparound.  If this landmass is at all longitudes
-      // then we just need a single rectangle (e.g. Antarctica).
-      bool everywhere = true, found;
-      int maxcconn;
-      for (maxcconn = 0; maxcconn < gr->nlon(); ++maxcconn) {
-        found = false;
-        for (int r = 0; r < gr->nlat(); ++r)
-          if (landmass(r, maxcconn) == lm) { found = true;  break; }
-        if (!found) { everywhere = false;  break; }
-      }
-      --maxcconn;
-      if (everywhere)
-        is.segments.push_back(Rect(0, minr, gr->nlon() - 1, maxr - minr + 1));
-      else {
-        // Longitude wraparound, so we're going to need two bounding
-        // box rectangles.
-        int mincconn;
-        for (mincconn = gr->nlon() - 1; mincconn >= 0; --mincconn) {
-          found = false;
-          for (int r = 0; r < gr->nlat(); ++r)
-            if (landmass(r, mincconn) == lm) { found = true;  break; }
-          if (!found) break;
-        }
-        ++mincconn;
-        is.segments.push_back(Rect(minc, minr,
-                                   maxcconn - minc + 1, maxr - minr + 1));
-        is.segments.push_back(Rect(mincconn, minr,
-                                   maxc - mincconn + 1, maxr - minr + 1));
-      }
-    }
+    compute.segment(lm, is.segments);
     isles[lm] = is;
   }
 }
@@ -389,7 +347,7 @@ static void readIslandDataFromDump(wxFFile &fp,
     isl[iisl].segments.resize(nseg);
     for (int i = 0; i < nseg; ++i)
       isl[iisl].segments[i] =
-        IslaModel::Rect(isis[i], jsis[i], ieis[i]-isis[i], jeis[i]-jsis[i]);
+        wxRect(isis[i], jsis[i], ieis[i]-isis[i], jeis[i]-jsis[i]);
   }
 }
 
@@ -452,8 +410,7 @@ static void parseASCIIIslands(wxString fname,
               isl[iisl].segments.resize(nseg);
               for (int i = 0; i < nseg; ++i)
                 isl[iisl].segments[i] =
-                  IslaModel::Rect(isis[i], jsis[i],
-                                  ieis[i]-isis[i], jeis[i]-jsis[i]);
+                  wxRect(isis[i], jsis[i], ieis[i]-isis[i], jeis[i]-jsis[i]);
               ++iisl;
               state = BEFORE_SEGS;
             }
@@ -495,12 +452,12 @@ void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
   // Check...
   cout << "#islands = " << isltmp.size() << endl;
   for (int i = 0; i < isltmp.size(); ++i) {
-    vector<Rect> &ss = isltmp[i].segments;
+    vector<wxRect> &ss = isltmp[i].segments;
     cout << "  " << i+1 << ": " << isltmp[i].name
          << " (" << ss.size() << ")" << endl;
     for (int j = 0; j < ss.size(); ++j)
-      cout << "    L:" << ss[j].l << " B:" << ss[j].b
-           << " W:" << ss[j].w << " H:" << ss[j].h << endl;
+      cout << "    L:" << ss[j].x << " B:" << ss[j].y
+           << " W:" << ss[j].width << " H:" << ss[j].height << endl;
   }
 
   // Set up new island data.

@@ -19,6 +19,7 @@ INCLUDE(${wxWidgets_USE_FILE})
 SET(isla_SRCS isla.cpp
               IslaFrame.cpp
               IslaModel.cpp
+              IslaCompute.cpp
               IslaCanvas.cpp
               IslaPreferences.cpp
               Dialogues.cpp

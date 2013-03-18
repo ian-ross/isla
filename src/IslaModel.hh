@@ -12,26 +12,23 @@
 #include <string>
 #include <vector>
 
+#include <wx/gdicmn.h>
 #include "GridData.hh"
 
 // Here, "mask" means a boolean land/sea mask (with true for land,
 // false for ocean).
+
+typedef int LMass;
 
 class IslaModel {
 public:
   enum GridType { HadCM3L, HadCM3, HadGEM2 };
 
   // Structures used for recording island information.
-  struct Rect {
-    Rect() : l(0), b(0), w(0), h(0) { }
-    Rect(int inl, int inb, int inw, int inh) :
-      l(inl), b(inb), w(inw), h(inh) { }
-    int l, b, w, h;
-  };
   struct IslandInfo {
     IslandInfo() { }
     std::string name;
-    std::vector<Rect> segments;
+    std::vector<wxRect> segments;
   };
 
 
@@ -56,7 +53,7 @@ public:
   bool maskVal(int r, int c) { return mask(r, c); }
   bool origMaskVal(int r, int c) { return orig_mask(r, c); }
   bool isIsland(int r, int c) { return is_island(r, c); }
-  int landMass(int r, int c) { return landmass(r, c); }
+  LMass landMass(int r, int c) { return landmass(r, c); }
   int isMask(int r, int c) { return ismask(r, c); }
   const std::map<int, IslandInfo> islands(void) const { return isles; }
 
@@ -96,13 +93,13 @@ private:
   int grid_changes;             // Changes between original and
                                 // current mask.
 
-  GridData<int> landmass;       // Land mass index for current mask.
+  GridData<LMass> landmass;     // Land mass index for current mask.
   std::vector<double> lmsizes;  // Land mass sizes.
   GridData<bool> is_island;     // Are land points part of an island?
   GridData<int> ismask;         // UM ISMASK for current mask.
 
   // Map from landmass ID to island information.
-  std::map<int, IslandInfo> isles;
+  std::map<LMass, IslandInfo> isles;
 };
 
 #endif

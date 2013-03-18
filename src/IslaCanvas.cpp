@@ -212,14 +212,14 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     const map<int, IslaModel::IslandInfo> &isles = model->islands();
     for (map<int, IslaModel::IslandInfo>::const_iterator it =
            isles.begin(); it != isles.end(); ++it) {
-      const vector<IslaModel::Rect> &segs = it->second.segments;
-      for (vector<IslaModel::Rect>::const_iterator jt = segs.begin();
+      const vector<wxRect> &segs = it->second.segments;
+      for (vector<wxRect>::const_iterator jt = segs.begin();
            jt != segs.end(); ++jt) {
-        int xl = lonToX(g->lon(jt->l));
-        int xr = lonToX(g->lon((jt->l + jt->w) % nlon));
-        int yb = min(latToY(g->lat(jt->b)), canh);
-        int yt = jt->b + jt->h >= g->nlat() ?
-          canh : max(0.0, latToY(g->lat(jt->b + jt->h)));
+        int xl = lonToX(g->lon(jt->x));
+        int xr = lonToX(g->lon((jt->x + jt->width) % nlon));
+        int yb = min(latToY(g->lat(jt->y)), canh);
+        int yt = jt->y + jt->height >= g->nlat() ?
+          canh : max(0.0, latToY(g->lat(jt->y + jt->height)));
         if (xl <= xr) {
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
         }
@@ -237,14 +237,14 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
                     3, wxSHORT_DASH));
     for (vector<IslaModel::IslandInfo>::const_iterator it =
            compisles.begin(); it != compisles.end(); ++it) {
-      const vector<IslaModel::Rect> &segs = it->segments;
-      for (vector<IslaModel::Rect>::const_iterator jt = segs.begin();
+      const vector<wxRect> &segs = it->segments;
+      for (vector<wxRect>::const_iterator jt = segs.begin();
            jt != segs.end(); ++jt) {
-        int xl = lonToX(g->lon(jt->l));
-        int xr = lonToX(g->lon((jt->l + jt->w) % nlon));
-        int yb = min(latToY(g->lat(jt->b)), canh);
-        int yt = jt->b + jt->h >= g->nlat() ?
-          canh : max(0.0, latToY(g->lat(jt->b + jt->h)));
+        int xl = lonToX(g->lon(jt->x));
+        int xr = lonToX(g->lon((jt->x + jt->width) % nlon));
+        int yb = min(latToY(g->lat(jt->y)), canh);
+        int yt = jt->y + jt->height >= g->nlat() ?
+          canh : max(0.0, latToY(g->lat(jt->y + jt->height)));
         if (xl <= xr) {
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
         }
