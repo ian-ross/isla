@@ -441,6 +441,42 @@ static void parseASCIIIslands(wxString fname,
   }
 }
 
+void IslaModel::saveIslands(wxString fname)
+{
+  wxTextFile fp(fname);
+  if (fp.Exists()) { fp.Open(); fp.Clear(); } else fp.Create();
+
+  fp.AddLine(_("# Island file"));
+  fp.AddLine(_(""));
+  fp.AddLine(wxString::Format(_("%d"), isles.size()));
+  for (map<LMass, IslandInfo>::const_iterator it = isles.begin();
+       it != isles.end(); ++it) {
+    fp.AddLine(_(""));
+    const IslandInfo &is = it->second;
+    fp.AddLine(wxString(_("# ")) + wxString::FromAscii(is.name.c_str()));
+    const vector<wxRect> &segs = is.segments;
+    fp.AddLine(wxString::Format(_("%d"), segs.size()));
+    bool firstseg = true;
+    wxString isis, ieis, jsis, jeis;
+    for (int i = 0; i < segs.size(); ++i) {
+      if (!firstseg) {
+        isis += _(" "); ieis += _(" "); jsis += _(" "); jeis += _(" ");
+      }
+      firstseg = false;
+      isis += wxString::Format(_("%d"), segs[i].x);
+      ieis += wxString::Format(_("%d"), segs[i].x + segs[i].width - 1);
+      jsis += wxString::Format(_("%d"), segs[i].y);
+      jeis += wxString::Format(_("%d"), segs[i].y + segs[i].height - 1);
+    }
+    fp.AddLine(isis);
+    fp.AddLine(ieis);
+    fp.AddLine(jsis);
+    fp.AddLine(jeis);
+  }
+
+  fp.Write();
+}
+
 void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
 {
   // Check that the file exists.

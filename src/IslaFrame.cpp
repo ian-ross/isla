@@ -48,9 +48,9 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (wxID_NEW,              IslaFrame::OnMenu)
   EVT_MENU  (wxID_OPEN,             IslaFrame::OnLoadMask)
   EVT_MENU  (wxID_SAVEAS,           IslaFrame::OnSaveMask)
+  EVT_MENU  (ID_EXPORT_ISLAND_DATA, IslaFrame::OnExportIslands)
   EVT_MENU  (ID_IMPORT_ISLCMP_DATA, IslaFrame::OnLoadComparison)
   EVT_MENU  (ID_CLEAR_ISLCMP_DATA,  IslaFrame::OnClearComparison)
-  EVT_MENU  (ID_EXPORT_ISLAND_DATA, IslaFrame::OnMenu)
   EVT_MENU  (wxID_PREFERENCES,      IslaFrame::OnPreferences)
   EVT_MENU  (wxID_EXIT,             IslaFrame::OnExit)
 
@@ -90,14 +90,14 @@ IslaFrame::IslaFrame() :
                    _("Load land/sea mask data from a NetCDF file"));
   menuFile->Append(wxID_SAVEAS, _("Sa&ve land/sea mask..."),
                    _("Save current land/sea mask data to a NetCDF file"));
+  menuFile->Append(ID_EXPORT_ISLAND_DATA, _("&Export island data..."),
+                   _("Write new island data file"));
   menuFile->AppendSeparator();
   menuFile->Append(ID_IMPORT_ISLCMP_DATA,
                    _("&Import island comparison data..."),
                    _("Import island data file for comparison purposes"));
   menuFile->Append(ID_CLEAR_ISLCMP_DATA, _("&Clear island comparison data"),
                    _("Clear island data file used for comparison purposes"));
-  menuFile->Append(ID_EXPORT_ISLAND_DATA, _("&Export island data..."),
-                   _("Write new island data file"));
   menuFile->AppendSeparator();
   menuFile->Append(wxID_PREFERENCES);
   menuFile->Append(wxID_EXIT);
@@ -371,6 +371,27 @@ void IslaFrame::OnSaveMask(wxCommandEvent &WXUNUSED(e))
   } catch (std::exception &e) {
     wxMessageDialog msg(this, _("Failed to write NetCDF file"),
                         _("NetCDF error"), wxICON_ERROR);
+    msg.ShowModal();
+    cout << "EXCEPTION: " << e.what() << endl;
+  }
+}
+
+void IslaFrame::OnExportIslands(wxCommandEvent &WXUNUSED(e))
+{
+  wxFileDialog filedlg(this,
+                       _("Choose a file to export to"),
+                       wxEmptyString,
+                       wxEmptyString,
+                       _("Island files (*.isl)|*.isl|All files (*.*)|*.*"),
+                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+  if (filedlg.ShowModal() == wxID_CANCEL) return;
+
+  try {
+    model->saveIslands(filedlg.GetPath());
+  } catch (std::exception &e) {
+    wxMessageDialog msg(this, _("Failed to write island file"),
+                        _("I/O error"), wxICON_ERROR);
     msg.ShowModal();
     cout << "EXCEPTION: " << e.what() << endl;
   }

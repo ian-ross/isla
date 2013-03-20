@@ -76,10 +76,15 @@ public:
   // Recalculate everything: land masses, ISMASK, islands.
   void recalcAll(void);
 
+  // Individual recalculation methods.
   void calcLandMasses(void);    // Index land masses.
   void calcIsMask(void);        // Calculate ISMASK.
   void calcIslands(void);       // Determine islands from scratch.
 
+  // Export current island data.
+  void saveIslands(wxString file);
+
+  // Load comparison island data.
   static void loadIslands(wxString fname, std::vector<IslandInfo> &isles);
 
 private:

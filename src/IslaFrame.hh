@@ -27,6 +27,7 @@ private:
   void OnOpen(wxCommandEvent &e);
   void OnLoadMask(wxCommandEvent &e);
   void OnSaveMask(wxCommandEvent &e);
+  void OnExportIslands(wxCommandEvent &e);
   void OnLoadComparison(wxCommandEvent &e);
   void OnClearComparison(wxCommandEvent &e);
   void OnZoom(wxCommandEvent &e);
