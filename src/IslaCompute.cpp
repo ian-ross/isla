@@ -22,6 +22,10 @@ void IslaCompute::segment(LMass lm, Boxes &bs)
   boundCols(lm, bcols);
   scoredSegmentation(lm, bcols, bycols);
   bs = byrows.size() <= bycols.size() ? byrows : bycols;
+  cout << "IslaCompute::segment: lm=" << lm << endl;
+  for (int i = 0; i < bs.size(); ++i)
+    cout << "  x:" << bs[i].x << " y:" << bs[i].y
+         << "  w:" << bs[i].width << " h:" << bs[i].height << endl;
 }
 
 void IslaCompute::scoredSegmentation(LMass lm, const Boxes &init, Boxes &segs)
@@ -123,7 +127,7 @@ void IslaCompute::boundCols(LMass lm, Boxes &cs)
 
 bool IslaCompute::admissible(LMass lm, int x, int y) const
 {
-  return glm(y, x) == lm || glm(y, x) == 0;
+  return glm(y, x) == lm || glm(y, x) == 0 || ismask(y, x) == 0;
 }
 
 bool IslaCompute::admissible(LMass lm, const Box &b) const

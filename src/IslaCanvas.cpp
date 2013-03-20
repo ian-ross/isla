@@ -215,11 +215,11 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
       const vector<wxRect> &segs = it->second.segments;
       for (vector<wxRect>::const_iterator jt = segs.begin();
            jt != segs.end(); ++jt) {
-        int xl = lonToX(g->lon(jt->x));
-        int xr = lonToX(g->lon((jt->x + jt->width) % nlon));
-        int yb = min(latToY(g->lat(jt->y)), canh);
-        int yt = jt->y + jt->height >= g->nlat() ?
-          canh : max(0.0, latToY(g->lat(jt->y + jt->height)));
+        int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
+        int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
+        int yb = min(latToY(g->lat(jt->y-1)), canh);
+        int yt = jt->y-1 + jt->height >= g->nlat() ?
+          canh : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
         if (xl <= xr) {
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
         }
@@ -240,11 +240,11 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
       const vector<wxRect> &segs = it->segments;
       for (vector<wxRect>::const_iterator jt = segs.begin();
            jt != segs.end(); ++jt) {
-        int xl = lonToX(g->lon(jt->x));
-        int xr = lonToX(g->lon((jt->x + jt->width) % nlon));
-        int yb = min(latToY(g->lat(jt->y)), canh);
-        int yt = jt->y + jt->height >= g->nlat() ?
-          canh : max(0.0, latToY(g->lat(jt->y + jt->height)));
+        int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
+        int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
+        int yb = min(latToY(g->lat(jt->y-1)), canh);
+        int yt = jt->y-1 + jt->height >= g->nlat() ?
+          canh : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
         if (xl <= xr) {
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
         }

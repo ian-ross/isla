@@ -24,7 +24,9 @@ public:
     bool operator<(Merge other) { return score < other.score; }
   };
 
-  IslaCompute(const GridData<LMass> &glmin) : glm(glmin) { }
+  IslaCompute(const GridData<LMass> &glmin,
+              const GridData<int> &ismaskin) :
+    glm(glmin), ismask(ismaskin) { }
 
   // Calculate island segments for given landmass.
   void segment(LMass lm, Boxes &bs);
@@ -55,6 +57,7 @@ public:
 
 private:
   const GridData<LMass> &glm;
+  const GridData<int> &ismask;
 };
 
 #endif

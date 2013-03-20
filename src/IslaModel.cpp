@@ -211,23 +211,31 @@ static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
 
 void IslaModel::calcLandMasses(void)
 {
+  // Determine initial land mass extents by flood fill.
   landmass = -1;
+  int nlon = gr->nlon(), nlat = gr->nlat();
   int region = 1;
-  for (int r = 0; r < gr->nlat(); ++r)
-    for (int c = 0; c < gr->nlon(); ++c) {
+  for (int r = 0; r < nlat; ++r)
+    for (int c = 0; c < nlon; ++c) {
       if (landmass(r, c) >= 0) continue;
       if (!mask(r, c)) { landmass(r, c) = 0; continue; }
       floodFill(landmass, r, c, region++, -1, mask);
     }
+
+  // Calculate land mass areas.
   lmsizes.clear();
   lmsizes.resize(region, 0.0);
-  for (int r = 0; r < gr->nlat(); ++r)
-    for (int c = 0; c < gr->nlon(); ++c)
+  for (int r = 0; r < nlat; ++r)
+    for (int c = 0; c < nlon; ++c)
       if (landmass(r, c) >= 0) lmsizes[landmass(r, c)] += gr->cellArea(r, c);
-  set<int> island_regions;
+
+  // Filter for islands based on size threshold.
+  set<LMass> island_regions;
   double island_threshold = IslaPreferences::get()->getIslandThreshold();
   for (int i = 1; i < region; ++i)
     if (lmsizes[i] <= island_threshold) island_regions.insert(i);
+
+  // Mark island regions.
   is_island = false;
   for (int r = 0; r < gr->nlat(); ++r)
     for (int c = 0; c < gr->nlon(); ++c)
@@ -243,14 +251,24 @@ void IslaModel::calcIsMask(void)
   int nlon = gr->nlon(), nlat = gr->nlat();
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c) {
-      int v = mask(r, c);
-      v += (r == 0) || mask(r - 1, c);
-      v += mask(r, (c - 1 + nlon) % nlon);
-      v += (r == 0) || mask(r - 1, (c - 1 + nlon) % nlon);
-      switch (v) {
-      case 4:  ismask(r, c) = 2; break;
-      case 0:  ismask(r, c) = 0; break;
-      default: ismask(r, c) = 1; break;
+      int v0 = mask(r, c);
+      int vs = (r == 0) || mask(r - 1, c);
+      int vw = mask(r, (c - 1 + nlon) % nlon);
+      int vsw = (r == 0) || mask(r - 1, (c - 1 + nlon) % nlon);
+      switch (v0 + vs + vw + vsw) {
+      case 4: ismask(r, c) = 2; break;
+      case 0: ismask(r, c) = 0; break;
+      default: {
+        ismask(r, c) = 1;
+        if (!v0) {
+          LMass lm = 0;
+          if (vs && r != 0) lm = landmass(r - 1, c);
+          if (!lm && vw) lm = landmass(r, (c - 1 + nlon) % nlon);
+          if (!lm && r != 0 && vsw) lm = landmass(r - 1, (c - 1 + nlon) % nlon);
+          landmass(r, c) = lm;
+        }
+        break;
+      }
       }
     }
 }
@@ -260,7 +278,7 @@ void IslaModel::calcIsMask(void)
 
 void IslaModel::calcIslands(void)
 {
-  IslaCompute compute(landmass);
+  IslaCompute compute(landmass, ismask);
 
   // For each island landmass...
   for (LMass lm = 1; lm < lmsizes.size(); ++lm) {
@@ -399,10 +417,10 @@ static void parseASCIIIslands(wxString fname,
         }
         case READING_SEGS: {
           switch (istep) {
-          case 0: isis.push_back(val - 1); break;
-          case 1: ieis.push_back(val - 1); break;
-          case 2: jsis.push_back(val - 1); break;
-          case 3: jeis.push_back(val - 1); break;
+          case 0: isis.push_back(val); break;
+          case 1: ieis.push_back(val); break;
+          case 2: jsis.push_back(val); break;
+          case 3: jeis.push_back(val); break;
           }
           if (++iseg == nseg) {
             iseg = 0;
