@@ -59,6 +59,8 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (wxID_ZOOM_FIT,         IslaFrame::OnZoom)
   EVT_MENU  (ID_ZOOM_SELECTION,     IslaFrame::OnZoom)
   EVT_MENU  (ID_PAN,                IslaFrame::OnZoom)
+  EVT_MENU  (ID_SHOW_ISLANDS,       IslaFrame::OnShowChange)
+  EVT_MENU  (ID_SHOW_COMPARISON,    IslaFrame::OnShowChange)
 
   EVT_MENU  (ID_SELECT,             IslaFrame::OnMenu)
   EVT_MENU  (ID_EDIT_MASK,          IslaFrame::OnMenu)
@@ -66,10 +68,10 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (wxID_ABOUT,            IslaFrame::OnMenu)
   EVT_CLOSE (                       IslaFrame::OnClose)
 #ifdef ISLA_DEBUG
-  EVT_MENU  (ID_DEBUG_SIZE_OVERLAY,     IslaFrame::OnMenu)
-  EVT_MENU  (ID_DEBUG_REGION_OVERLAY,   IslaFrame::OnMenu)
-  EVT_MENU  (ID_DEBUG_ISMASK_OVERLAY,   IslaFrame::OnMenu)
-  EVT_MENU  (ID_DEBUG_ISISLAND_OVERLAY, IslaFrame::OnMenu)
+  EVT_MENU  (ID_DEBUG_SIZE_OVERLAY,     IslaFrame::OnDebug)
+  EVT_MENU  (ID_DEBUG_REGION_OVERLAY,   IslaFrame::OnDebug)
+  EVT_MENU  (ID_DEBUG_ISMASK_OVERLAY,   IslaFrame::OnDebug)
+  EVT_MENU  (ID_DEBUG_ISISLAND_OVERLAY, IslaFrame::OnDebug)
 #endif
 END_EVENT_TABLE()
 
@@ -111,6 +113,12 @@ IslaFrame::IslaFrame() :
   zoomsel_item->SetBitmap(wxBITMAP(zoom_select));
   menuView->Append(zoomsel_item);
   menuView->AppendCheckItem(ID_PAN, _("&Pan"), _("Pan view"));
+  menuView->AppendSeparator();
+  menuView->AppendCheckItem(ID_SHOW_ISLANDS, _("Show islands"),
+                            _("Display island outlines on map"));
+  menuView->AppendCheckItem(ID_SHOW_COMPARISON,
+                            _("Show comparison"),
+                            _("Display island comparison data on map"));
 
   menuTools->AppendCheckItem(ID_SELECT, _("&Select\tCtrl-S"),
                              _("Select items"));
@@ -174,6 +182,8 @@ IslaFrame::IslaFrame() :
   menuView->Check(ID_SELECT, true);
   toolBar->ToggleTool(ID_EDIT_MASK, false);
   menuView->Check(ID_EDIT_MASK, false);
+  menuView->Check(ID_SHOW_ISLANDS, true);
+  menuView->Check(ID_SHOW_COMPARISON, true);
 
   CreateStatusBar(2);
   SetStatusText(_("Welcome to Isla!"));
@@ -233,6 +243,8 @@ void IslaFrame::UpdateUI()
   menuTools->Check(ID_EDIT_MASK, canvas->Editing());
   toolBar->ToggleTool(ID_SELECT, !canvas->Editing());
   menuTools->Check(ID_SELECT, !canvas->Editing());
+  menuView->Check(ID_SHOW_ISLANDS, canvas->ShowIslands());
+  menuView->Check(ID_SHOW_COMPARISON, canvas->ShowComparison());
 }
 
 // Event handlers -----------------------------------------------------------
@@ -245,7 +257,14 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
   case wxID_ABOUT: { IslaAboutDialogue d(this);  d.ShowModal();  break; }
   case ID_SELECT: canvas->SetSelect();  UpdateUI(); break;
   case ID_EDIT_MASK: canvas->SetEdit(); UpdateUI(); break;
+  }
+}
+
+// Debug stuff
 #ifdef ISLA_DEBUG
+void IslaFrame::OnDebug(wxCommandEvent &e)
+{
+  switch (e.GetId()) {
   case ID_DEBUG_SIZE_OVERLAY:
     canvas->sizingOverlay = !canvas->sizingOverlay;
     canvas->Refresh();
@@ -262,9 +281,9 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
     canvas->isIslandOverlay = !canvas->isIslandOverlay;
     canvas->Refresh();
     break;
-#endif
   }
 }
+#endif
 
 void IslaFrame::OnExit(wxCommandEvent &e)
 {
@@ -437,4 +456,19 @@ void IslaFrame::OnZoom(wxCommandEvent &e)
   case ID_PAN: canvas->SetPanning(!canvas->Panning());
   }
   UpdateUI();
+}
+
+void IslaFrame::OnShowChange(wxCommandEvent &e)
+{
+  switch(e.GetId()) {
+  case ID_SHOW_ISLANDS:
+    canvas->SetShowIslands(!canvas->ShowIslands());
+    break;
+  case ID_SHOW_COMPARISON:
+    canvas->SetShowComparison(!canvas->ShowComparison());
+    break;
+  default: return;
+  }
+  UpdateUI();
+  canvas->Refresh();
 }

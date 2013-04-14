@@ -38,6 +38,8 @@ public:
   bool ZoomOutOK(void) const { return scale > FitScale(); }
   bool Panning(void) const { return panning; }
   bool Editing(void) const { return edit; }
+  bool ShowIslands(void) const { return show_islands; }
+  bool ShowComparison(void) const { return show_comparison; }
   void SetPanning(bool pan) {
     panning = pan;
     zoom_selection = false;
@@ -52,6 +54,8 @@ public:
     edit = true;
     SetCursor(wxCursor(wxCURSOR_PENCIL));
   }
+  bool SetShowIslands(bool show) { show_islands = show; }
+  bool SetShowComparison(bool show) { show_comparison = show; }
   void SetFrame(IslaFrame *f) { frame = f; }
 
   // Handle island comparison data.
@@ -171,6 +175,10 @@ private:
   bool edit;                    // Are we in edit mode?
   int edcol, edrow;             // Edit coordinates.
   bool edval;                   // Value for drag edits.
+
+  // Display parameters.
+  bool show_islands;
+  bool show_comparison;
 
   // Model dependent members.
   IslaModel *model;             // Isla model.

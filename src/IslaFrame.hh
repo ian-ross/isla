@@ -34,6 +34,10 @@ private:
   void OnPreferences(wxCommandEvent &e);
   void OnExit(wxCommandEvent &e);
   void OnClose(wxCloseEvent &e) { Destroy(); }
+  void OnShowChange(wxCommandEvent &e);
+#ifdef ISLA_DEBUG
+  void OnDebug(wxCommandEvent &e);
+#endif
 
   IslaModel *model;
   IslaCanvas *canvas;

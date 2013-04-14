@@ -41,7 +41,8 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
            wxFULL_REPAINT_ON_RESIZE),
   frame(0),
-  mouse(MOUSE_NOTHING), panning(false), zoom_selection(false), edit(false)
+  mouse(MOUSE_NOTHING), panning(false), zoom_selection(false), edit(false),
+  show_islands(true), show_comparison(true)
 #ifdef ISLA_DEBUG
   , sizingOverlay(false), regionOverlay(false)
   , ismaskOverlay(false), isIslandOverlay(false)
@@ -207,7 +208,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   }
 
   // Draw island segments.
-  if (model->islands().size() > 0) {
+  if (show_islands && model->islands().size() > 0) {
     dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 3));
     const map<int, IslaModel::IslandInfo> &isles = model->islands();
     for (map<int, IslaModel::IslandInfo>::const_iterator it =
@@ -232,7 +233,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   }
 
   // Draw island comparison segments.
-  if (model->islands().size() > 0) {
+  if (show_comparison && compisles.size() > 0) {
     dc.SetPen(wxPen(IslaPreferences::get()->getCompOutlineColour(),
                     3, wxSHORT_DASH));
     for (vector<IslaModel::IslandInfo>::const_iterator it =

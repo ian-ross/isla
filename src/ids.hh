@@ -18,6 +18,8 @@ enum {
   // View menu
   ID_ZOOM_SELECTION,
   ID_PAN,
+  ID_SHOW_ISLANDS,
+  ID_SHOW_COMPARISON,
 
   // Tools menu
   ID_SELECT,
