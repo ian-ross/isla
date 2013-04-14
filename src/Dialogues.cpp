@@ -31,10 +31,19 @@ IslaAboutDialogue::IslaAboutDialogue(wxWindow *p) :
   wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
   sizer->Add(sbmp, 0, wxCENTRE | wxALL, 10);
   sizer->Add(new wxStaticLine(this, wxID_ANY), 0, wxGROW | wxLEFT | wxRIGHT, 5);
-  sizer->Add(CreateTextSizer(_("Isla version 0.0 for wxWidgets\n\n"
-                               "(c) 2013 Ian Ross\n\n"
-                               "<ian@skybluetrades.net>")),
-             0, wxCENTRE | wxRIGHT|wxLEFT|wxTOP, 20);
+  wxString lines[] = { _(""),
+                       _("Isla version 0.1"),
+                       _("© 2013 Ian Ross"),
+                       _("<ian@skybluetrades.net>") };
+  int w, maxw;
+  for (int i = 0; i < 4; ++i) {
+    GetTextExtent(lines[i], &w, 0);
+    if (i == 0 || w > maxw) maxw = w;
+  }
+  wxSize sz(1.5 * maxw, -1);
+  for (int i = 0; i < 4; ++i)
+    sizer->Add(new wxStaticText(this, wxID_ANY, lines[i],
+                                wxDefaultPosition, sz));
   wxSizer *sizerBtns = CreateButtonSizer(wxOK);
   if (sizerBtns) sizer->Add(sizerBtns, wxSizerFlags().Expand().Border());
   SetSizer(sizer);
