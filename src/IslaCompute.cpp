@@ -127,7 +127,7 @@ void IslaCompute::boundCols(LMass lm, Boxes &cs)
 
 bool IslaCompute::admissible(LMass lm, int x, int y) const
 {
-  return glm(y, x) == lm || glm(y, x) == 0 || ismask(y, x) == 0;
+  return glm(y, x) == lm || ismask(y, x) == 0;
 }
 
 bool IslaCompute::admissible(LMass lm, const Box &b) const

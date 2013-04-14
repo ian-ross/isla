@@ -358,10 +358,10 @@ static void readIslandDataFromDump(wxFFile &fp,
     if (idata + nseg * 4 > extra_data_length)
       throw runtime_error("Format error in dump file island data");
     isis.clear();  ieis.clear();  jsis.clear();  jeis.clear();
-    for (int i = 0; i < nseg; ++i) isis.push_back(data[idata++] - 1);
-    for (int i = 0; i < nseg; ++i) ieis.push_back(data[idata++] - 1);
-    for (int i = 0; i < nseg; ++i) jsis.push_back(data[idata++] - 1);
-    for (int i = 0; i < nseg; ++i) jeis.push_back(data[idata++] - 1);
+    for (int i = 0; i < nseg; ++i) isis.push_back(data[idata++]);
+    for (int i = 0; i < nseg; ++i) ieis.push_back(data[idata++]);
+    for (int i = 0; i < nseg; ++i) jsis.push_back(data[idata++]);
+    for (int i = 0; i < nseg; ++i) jeis.push_back(data[idata++]);
     isl[iisl].segments.resize(nseg);
     for (int i = 0; i < nseg; ++i)
       isl[iisl].segments[i] =
@@ -463,10 +463,10 @@ void IslaModel::saveIslands(wxString fname)
         isis += _(" "); ieis += _(" "); jsis += _(" "); jeis += _(" ");
       }
       firstseg = false;
-      isis += wxString::Format(_("%d"), segs[i].x);
-      ieis += wxString::Format(_("%d"), segs[i].x + segs[i].width - 1);
-      jsis += wxString::Format(_("%d"), segs[i].y);
-      jeis += wxString::Format(_("%d"), segs[i].y + segs[i].height - 1);
+      isis += wxString::Format(_("%d"), segs[i].x + 1);
+      ieis += wxString::Format(_("%d"), segs[i].x + 1 + segs[i].width);
+      jsis += wxString::Format(_("%d"), segs[i].y + 1);
+      jeis += wxString::Format(_("%d"), segs[i].y + 1 + segs[i].height);
     }
     fp.AddLine(isis);
     fp.AddLine(ieis);
