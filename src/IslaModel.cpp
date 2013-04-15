@@ -365,7 +365,7 @@ static void readIslandDataFromDump(wxFFile &fp,
     isl[iisl].segments.resize(nseg);
     for (int i = 0; i < nseg; ++i)
       isl[iisl].segments[i] =
-        wxRect(isis[i], jsis[i], ieis[i]-isis[i], jeis[i]-jsis[i]);
+        wxRect(isis[i], jsis[i], ieis[i]-isis[i]+1, jeis[i]-jsis[i]+1);
   }
 }
 
@@ -428,7 +428,8 @@ static void parseASCIIIslands(wxString fname,
               isl[iisl].segments.resize(nseg);
               for (int i = 0; i < nseg; ++i)
                 isl[iisl].segments[i] =
-                  wxRect(isis[i], jsis[i], ieis[i]-isis[i], jeis[i]-jsis[i]);
+                  wxRect(isis[i], jsis[i],
+                         ieis[i]-isis[i]+1, jeis[i]-jsis[i]+1);
               ++iisl;
               state = BEFORE_SEGS;
             }
@@ -463,10 +464,10 @@ void IslaModel::saveIslands(wxString fname)
         isis += _(" "); ieis += _(" "); jsis += _(" "); jeis += _(" ");
       }
       firstseg = false;
-      isis += wxString::Format(_("%d"), segs[i].x + 1);
-      ieis += wxString::Format(_("%d"), segs[i].x + 1 + segs[i].width);
-      jsis += wxString::Format(_("%d"), segs[i].y + 1);
-      jeis += wxString::Format(_("%d"), segs[i].y + 1 + segs[i].height);
+      isis += wxString::Format(_("%d"), segs[i].x);
+      ieis += wxString::Format(_("%d"), segs[i].x + segs[i].width - 1);
+      jsis += wxString::Format(_("%d"), segs[i].y);
+      jeis += wxString::Format(_("%d"), segs[i].y + segs[i].height - 1);
     }
     fp.AddLine(isis);
     fp.AddLine(ieis);
