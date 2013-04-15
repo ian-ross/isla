@@ -142,6 +142,10 @@ private:
   int lonToCol(double lon);
   int latToRow(double lat);
 
+  // Draw an island.
+  void drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
+                  const IslaModel::IslandInfo &isl);
+
   enum MouseState {
     MOUSE_NOTHING,
     MOUSE_PAN_X,

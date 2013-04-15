@@ -26,13 +26,13 @@ public:
   enum GridType { HadCM3L, HadCM3, HadGEM2 };
 
   // Structures used for recording island information.
-  typedef std::multimap<int, std::pair<int, int> > CoincidenceInfo;
+  typedef std::multimap<int, std::pair<int, int> > CoincInfo;
   struct IslandInfo {
     IslandInfo() { }
     std::string name;
     std::vector<wxRect> segments;
-    CoincidenceInfo vcoinc;
-    CoincidenceInfo hcoinc;
+    CoincInfo vcoinc;
+    CoincInfo hcoinc;
   };
 
 

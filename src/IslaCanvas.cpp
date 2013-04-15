@@ -210,85 +210,26 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   // Draw island segments.
   if (show_islands && model->islands().size() > 0) {
     const map<int, IslaModel::IslandInfo> &isles = model->islands();
+    wxPen p(IslaPreferences::get()->getIslandOutlineColour(), 3);
+    wxBrush vb(IslaPreferences::get()->getIslandOutlineColour(),
+               wxHORIZONTAL_HATCH);
+    wxBrush hb(IslaPreferences::get()->getIslandOutlineColour(),
+               wxVERTICAL_HATCH);
     for (map<int, IslaModel::IslandInfo>::const_iterator it =
-           isles.begin(); it != isles.end(); ++it) {
-      const vector<wxRect> &segs = it->second.segments;
-      dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 3));
-      for (vector<wxRect>::const_iterator jt = segs.begin();
-           jt != segs.end(); ++jt) {
-        int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
-        int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
-        int yb = min(latToY(g->lat(jt->y-1)), canh);
-        int yt = jt->y-1 + jt->height >= g->nlat() ?
-          canh : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
-        if (xl < xr)
-          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-        else {
-          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
-          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
-        }
-      }
-      dc.SetPen(*wxTRANSPARENT_PEN);
-      dc.SetBrush(wxBrush(IslaPreferences::get()->getIslandOutlineColour(),
-                          wxCROSSDIAG_HATCH));
-      const IslaModel::CoincidenceInfo &vhatch = it->second.vcoinc;
-      int dx = lonToX(iclons[1]) - lonToX(iclons[1]);
-      for (IslaModel::CoincidenceInfo::const_iterator vit = vhatch.begin();
-           vit != vhatch.end(); ++vit) {
-        int x = lonToX(g->lon((vit->first-1 + nlon) % nlon));
-        int yb = min(latToY(g->lat(vit->second.first-1)), canh);
-        int yt = vit->second.second >= g->nlat() ?
-          canh : max(0.0, latToY(g->lat(vit->second.second)));
-        int xl = x - dx / 2, xr = x + dx / 2;
-        if (xl < xr)
-          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-        else {
-          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
-          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
-        }
-      }
-      const IslaModel::CoincidenceInfo &hhatch = it->second.hcoinc;
-      for (IslaModel::CoincidenceInfo::const_iterator hit = hhatch.begin();
-           hit != hhatch.end(); ++hit) {
-        int y = min(latToY(g->lat(hit->first-1)), canh);
-        int dy = latToY(g->lat(hit->first-1)) - latToY(g->lat(hit->first));
-        int xl = lonToX(g->lon((hit->second.first-1 + nlon) % nlon));
-        int xr = lonToX(g->lon((hit->second.second-1 + nlon) % nlon));
-        int yt = y - dy / 2, yb = y + dy / 2;
-        if (xl < xr)
-          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-        else {
-          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
-          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
-        }
-      }
-      dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    }
+           isles.begin(); it != isles.end(); ++it)
+      drawIsland(dc, p, vb, hb, it->second);
   }
 
   // Draw island comparison segments.
   if (show_comparison && compisles.size() > 0) {
-    dc.SetPen(wxPen(IslaPreferences::get()->getCompOutlineColour(),
-                    3, wxSHORT_DASH));
+    wxPen p(IslaPreferences::get()->getCompOutlineColour(), 3, wxSHORT_DASH);
+    wxBrush vb(IslaPreferences::get()->getCompOutlineColour(),
+               wxHORIZONTAL_HATCH);
+    wxBrush hb(IslaPreferences::get()->getCompOutlineColour(),
+               wxVERTICAL_HATCH);
     for (vector<IslaModel::IslandInfo>::const_iterator it =
-           compisles.begin(); it != compisles.end(); ++it) {
-      const vector<wxRect> &segs = it->segments;
-      for (vector<wxRect>::const_iterator jt = segs.begin();
-           jt != segs.end(); ++jt) {
-        int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
-        int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
-        int yb = min(latToY(g->lat(jt->y-1)), canh);
-        int yt = jt->y-1 + jt->height >= g->nlat() ?
-          canh : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
-        if (xl <= xr) {
-          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-        }
-        else {
-          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
-          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
-        }
-      }
-    }
+           compisles.begin(); it != compisles.end(); ++it)
+      drawIsland(dc, p, vb, hb, *it);
   }
 
   // Draw axes.
@@ -400,6 +341,67 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     dc.DrawText(txt, x, y + th * l++);
   }
 #endif
+}
+
+
+// Draw a single island.
+
+void IslaCanvas::drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
+                            const IslaModel::IslandInfo &isl)
+{
+  GridPtr g = model->grid();
+  int nlon = g->nlon(), nlat = g->nlat();
+  const vector<wxRect> &segs = isl.segments;
+  dc.SetPen(p);
+  for (vector<wxRect>::const_iterator jt = segs.begin();
+       jt != segs.end(); ++jt) {
+    int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
+    int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
+    int yb = min(latToY(g->lat(jt->y-1)), canh);
+    int yt = jt->y-1 + jt->height >= g->nlat() ?
+      0 : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
+    if (xl < xr)
+      dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+    else {
+      dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+      dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+    }
+  }
+  dc.SetPen(*wxTRANSPARENT_PEN);
+  dc.SetBrush(vb);
+  const IslaModel::CoincInfo &vhatch = isl.vcoinc;
+  int dx = lonToX(iclons[2]) - lonToX(iclons[1]);
+  for (IslaModel::CoincInfo::const_iterator vit = vhatch.begin();
+       vit != vhatch.end(); ++vit) {
+    int x = lonToX(g->lon((vit->first-1 + nlon) % nlon));
+    int yb = min(latToY(g->lat(vit->second.first-1)), canh);
+    int yt = vit->second.second >= g->nlat() ?
+      0 : max(0.0, latToY(g->lat(vit->second.second-1)));
+    int xl = x - dx / 2, xr = x + dx / 2;
+    if (xl < xr)
+      dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+    else {
+      dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+      dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+    }
+  }
+  dc.SetBrush(hb);
+  const IslaModel::CoincInfo &hhatch = isl.hcoinc;
+  for (IslaModel::CoincInfo::const_iterator hit = hhatch.begin();
+       hit != hhatch.end(); ++hit) {
+    int y = min(latToY(g->lat(hit->first-1)), canh);
+    int dy = latToY(g->lat(hit->first-1)) - latToY(g->lat(hit->first));
+    int xl = lonToX(g->lon((hit->second.first-1 + nlon) % nlon));
+    int xr = lonToX(g->lon((hit->second.second-1 + nlon) % nlon));
+    int yt = y - dy / 2, yb = y + dy / 2;
+    if (xl < xr)
+      dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+    else {
+      dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+      dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+    }
+  }
+  dc.SetBrush(*wxTRANSPARENT_BRUSH);
 }
 
 

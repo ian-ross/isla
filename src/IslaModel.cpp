@@ -296,7 +296,8 @@ void IslaModel::calcIslands(void)
     char tmp[15];
     sprintf(tmp, "Landmass %d", lm);
     is.name = tmp;
-    compute.segment(lm, is.segments, is.vcoinc, is.hcoinc);
+    compute.segment(lm, is.segments);
+    IslaCompute::coincidence(is.segments, is.vcoinc, is.hcoinc);
     isles[lm] = is;
   }
 }
@@ -503,6 +504,11 @@ void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
     readIslandDataFromDump(fp, isltmp);
   else
     parseASCIIIslands(fname, isltmp);
+
+  // Compute coincidence line segments for island display.
+  for (vector<IslandInfo>::iterator it = isltmp.begin();
+       it != isltmp.end(); ++it)
+    IslaCompute::coincidence(it->segments, it->vcoinc, it->hcoinc);
 
   // Check...
   // cout << "#islands = " << isltmp.size() << endl;

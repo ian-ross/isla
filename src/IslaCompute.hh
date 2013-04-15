@@ -29,11 +29,16 @@ public:
     glm(glmin), ismask(ismaskin) { }
 
   // Calculate island segments for given landmass.
-  void segment(LMass lm, Boxes &bs,
-               IslaModel::CoincidenceInfo &vhatch,
-               IslaModel::CoincidenceInfo &hhatch);
+  void segment(LMass lm, Boxes &bs);
   void scoredSegmentation(LMass lm, const Boxes &init, Boxes &segs);
   bool step(LMass lm, const Boxes &before, Boxes &after);
+
+  // Compute coincidence line segments between adjacent island
+  // segments (used for distinguishing spatially adjacent segments
+  // that belong to the same island and adjacent segments from
+  // distinct islands).
+  static void coincidence(const Boxes &bs,
+                          IslaModel::CoincInfo &v, IslaModel::CoincInfo &h);
 
   // Determine bounding regions for a given landmass.
   Box boundBox(LMass lm);
