@@ -14,7 +14,9 @@ using namespace std;
 
 // Calculate island segments for given landmass.
 
-void IslaCompute::segment(LMass lm, Boxes &bs)
+void IslaCompute::segment(LMass lm, Boxes &bs,
+                          IslaModel::CoincidenceInfo &vhatch,
+                          IslaModel::CoincidenceInfo &hhatch)
 {
   Boxes brows, byrows, bcols, bycols;
   boundRows(lm, brows);
@@ -27,10 +29,50 @@ void IslaCompute::segment(LMass lm, Boxes &bs)
   if (dorows && docols)
     bs = byrows.size() <= bycols.size() ? byrows : bycols;
   else bs = dorows ? byrows : bycols;
-  // cout << "IslaCompute::segment: lm=" << lm << endl;
-  // for (int i = 0; i < bs.size(); ++i)
-  //   cout << "  x:" << bs[i].x << " y:" << bs[i].y
-  //        << "  w:" << bs[i].width << " h:" << bs[i].height << endl;
+
+  vhatch.clear();
+  hhatch.clear();
+  for (Boxes::const_iterator i1 = bs.begin(); i1 != bs.end(); ++i1) {
+    int l1 = i1->x, b1 = i1->y, r1 = l1 + i1->width, t1 = b1 + i1->height;
+    for (Boxes::const_iterator i2 = i1 + 1; i2 != bs.end(); ++i2) {
+      int l2 = i2->x, b2 = i2->y, r2 = l2 + i2->width, t2 = b2 + i2->height;
+      if ((r1 == l2 || l1 == r2) &&
+          (b1 >= b2 && b1 <= t2 || t1 >= b2 && t1 <= t2 ||
+           b2 >= b1 && b2 <= t1 || t2 >= b1 && t2 <= t1)) {
+        pair<int, int> bnds = make_pair(max(b1,b2), min(t1,t2));
+        vhatch.insert(make_pair(r1 == l2 ? r1 : l1, bnds));
+      }
+      if ((t1 == b2 || b1 == t2) &&
+          (l1 >= l2 && l1 <= r2 || r1 >= l2 && r1 <= r2 ||
+           l2 >= l1 && l2 <= r1 || r2 >= l1 && r2 <= r1)) {
+        pair<int, int> bnds = make_pair(max(l1,l2), min(r1,r2));
+        hhatch.insert(make_pair(t1 == b2 ? t1 : b1, bnds));
+      }
+    }
+  }
+
+#ifdef ISLA_DEBUG
+  if (vhatch.size() > 0 || hhatch.size() > 0) {
+    cout << "IslaCompute::segment: lm=" << lm << endl;
+    for (int i = 0; i < bs.size(); ++i)
+      cout << "  x:" << bs[i].x << " y:" << bs[i].y
+           << "  w:" << bs[i].width << " h:" << bs[i].height << endl;
+    if (vhatch.size() > 0) {
+      cout << "vhatch:" << endl;
+      for (multimap<int, pair<int,int> >::const_iterator it = vhatch.begin();
+           it != vhatch.end(); ++it)
+        cout << " col=" << it->first << "  "
+             << it->second.first << "-" << it->second.second << endl;
+    }
+    if (hhatch.size() > 0) {
+      cout << "hhatch:" << endl;
+      for (multimap<int, pair<int,int> >::const_iterator it = hhatch.begin();
+           it != hhatch.end(); ++it)
+        cout << " row=" << it->first << "  "
+             << it->second.first << "-" << it->second.second << endl;
+    }
+  }
+#endif
 }
 
 void IslaCompute::scoredSegmentation(LMass lm, const Boxes &init, Boxes &segs)

@@ -11,6 +11,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <wx/gdicmn.h>
 #include "GridData.hh"
@@ -25,10 +26,13 @@ public:
   enum GridType { HadCM3L, HadCM3, HadGEM2 };
 
   // Structures used for recording island information.
+  typedef std::multimap<int, std::pair<int, int> > CoincidenceInfo;
   struct IslandInfo {
     IslandInfo() { }
     std::string name;
     std::vector<wxRect> segments;
+    CoincidenceInfo vcoinc;
+    CoincidenceInfo hcoinc;
   };
 
 

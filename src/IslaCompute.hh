@@ -29,7 +29,9 @@ public:
     glm(glmin), ismask(ismaskin) { }
 
   // Calculate island segments for given landmass.
-  void segment(LMass lm, Boxes &bs);
+  void segment(LMass lm, Boxes &bs,
+               IslaModel::CoincidenceInfo &vhatch,
+               IslaModel::CoincidenceInfo &hhatch);
   void scoredSegmentation(LMass lm, const Boxes &init, Boxes &segs);
   bool step(LMass lm, const Boxes &before, Boxes &after);
 

@@ -296,7 +296,7 @@ void IslaModel::calcIslands(void)
     char tmp[15];
     sprintf(tmp, "Landmass %d", lm);
     is.name = tmp;
-    compute.segment(lm, is.segments);
+    compute.segment(lm, is.segments, is.vcoinc, is.hcoinc);
     isles[lm] = is;
   }
 }

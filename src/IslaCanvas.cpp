@@ -209,11 +209,11 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 
   // Draw island segments.
   if (show_islands && model->islands().size() > 0) {
-    dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 3));
     const map<int, IslaModel::IslandInfo> &isles = model->islands();
     for (map<int, IslaModel::IslandInfo>::const_iterator it =
            isles.begin(); it != isles.end(); ++it) {
       const vector<wxRect> &segs = it->second.segments;
+      dc.SetPen(wxPen(IslaPreferences::get()->getIslandOutlineColour(), 3));
       for (vector<wxRect>::const_iterator jt = segs.begin();
            jt != segs.end(); ++jt) {
         int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
@@ -228,6 +228,41 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
           dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
         }
       }
+      dc.SetPen(*wxTRANSPARENT_PEN);
+      dc.SetBrush(wxBrush(IslaPreferences::get()->getIslandOutlineColour(),
+                          wxCROSSDIAG_HATCH));
+      const IslaModel::CoincidenceInfo &vhatch = it->second.vcoinc;
+      int dx = lonToX(iclons[1]) - lonToX(iclons[1]);
+      for (IslaModel::CoincidenceInfo::const_iterator vit = vhatch.begin();
+           vit != vhatch.end(); ++vit) {
+        int x = lonToX(g->lon((vit->first-1 + nlon) % nlon));
+        int yb = min(latToY(g->lat(vit->second.first-1)), canh);
+        int yt = vit->second.second >= g->nlat() ?
+          canh : max(0.0, latToY(g->lat(vit->second.second)));
+        int xl = x - dx / 2, xr = x + dx / 2;
+        if (xl < xr)
+          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+        else {
+          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+        }
+      }
+      const IslaModel::CoincidenceInfo &hhatch = it->second.hcoinc;
+      for (IslaModel::CoincidenceInfo::const_iterator hit = hhatch.begin();
+           hit != hhatch.end(); ++hit) {
+        int y = min(latToY(g->lat(hit->first-1)), canh);
+        int dy = latToY(g->lat(hit->first-1)) - latToY(g->lat(hit->first));
+        int xl = lonToX(g->lon((hit->second.first-1 + nlon) % nlon));
+        int xr = lonToX(g->lon((hit->second.second-1 + nlon) % nlon));
+        int yt = y - dy / 2, yb = y + dy / 2;
+        if (xl < xr)
+          dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
+        else {
+          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+          dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
+        }
+      }
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
     }
   }
 
