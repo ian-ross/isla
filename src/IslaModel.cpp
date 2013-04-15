@@ -170,9 +170,19 @@ void IslaModel::setIsIsland(int cr, int cc, bool val)
 {
   if (!mask(cr, cc)) return;
   LMass lm = landmass(cr, cc);
+  bool found = false, before;
   for (int r = 0; r < gr->nlat(); ++r)
     for (int c = 0; c < gr->nlon(); ++c)
-      if (landmass(r, c) == lm) is_island(r, c) = val;
+      if (landmass(r, c) == lm) {
+        if (!found) {
+          before = is_island(r, c);
+          if (before == val) return;
+          found = true;
+        }
+        is_island(r, c) = val;
+      }
+  if (before) isles.erase(lm);
+  else calcIsland(lm);
 }
 
 
@@ -274,33 +284,39 @@ void IslaModel::calcIsMask(void)
 }
 
 
-// Recalculate island information.
+// Recalculate island information for a single landmass.
+
+void IslaModel::calcIsland(LMass lm)
+{
+  IslaCompute compute(landmass, ismask);
+  int startr, startc;
+  bool found = false;
+  for (startr = 0; startr < gr->nlat(); ++startr) {
+    for (startc = 0; startc < gr->nlon(); ++startc)
+      if (landmass(startr, startc) == lm) { found = true;  break; }
+    if (found) break;
+  }
+  if (!is_island(startr, startc)) return;
+
+  // Set up island info.
+  IslandInfo is;
+  char tmp[15];
+  sprintf(tmp, "Landmass %d", lm);
+  is.name = tmp;
+  compute.segment(lm, is.segments);
+  IslaCompute::coincidence(is.segments, is.vcoinc, is.hcoinc);
+  isles[lm] = is;
+}
+
+
+// Recalculate island information for all landmasses.
 
 void IslaModel::calcIslands(void)
 {
-  IslaCompute compute(landmass, ismask);
-
   // For each island landmass...
-  for (LMass lm = 1; lm < lmsizes.size(); ++lm) {
-    int startr, startc;
-    bool found = false;
-    for (startr = 0; startr < gr->nlat(); ++startr) {
-      for (startc = 0; startc < gr->nlon(); ++startc)
-        if (landmass(startr, startc) == lm) { found = true;  break; }
-      if (found) break;
-    }
-    if (!is_island(startr, startc)) continue;
-
-    // Set up island info.
-    IslandInfo is;
-    char tmp[15];
-    sprintf(tmp, "Landmass %d", lm);
-    is.name = tmp;
-    compute.segment(lm, is.segments);
-    IslaCompute::coincidence(is.segments, is.vcoinc, is.hcoinc);
-    isles[lm] = is;
-  }
+  for (LMass lm = 1; lm < lmsizes.size(); ++lm) calcIsland(lm);
 }
+
 
 static void swap_bytes(void *buf, int nbytes, int n)
 {

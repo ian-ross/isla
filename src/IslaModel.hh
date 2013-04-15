@@ -83,6 +83,7 @@ public:
   // Individual recalculation methods.
   void calcLandMasses(void);    // Index land masses.
   void calcIsMask(void);        // Calculate ISMASK.
+  void calcIsland(LMass lm);    // Analyse single island.
   void calcIslands(void);       // Determine islands from scratch.
 
   // Export current island data.
