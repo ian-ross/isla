@@ -763,7 +763,10 @@ void IslaCanvas::SizeRecalc(void)
   if (scale < 0) {
     mapw = canw - bw * 2;
     scale = FitScale();
-  } else mapw = min(360.0 * scale, canw - bw * 2);
+  } else {
+    if (360.0 * scale < canw - bw * 2) scale = FitScale();
+    mapw = min(360.0 * scale, canw - bw * 2);
+  }
   xoff = (canw - mapw) / 2;
   GridPtr g = model->grid();
   double maphb = maph;
