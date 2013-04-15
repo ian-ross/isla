@@ -18,10 +18,15 @@ void IslaCompute::segment(LMass lm, Boxes &bs)
 {
   Boxes brows, byrows, bcols, bycols;
   boundRows(lm, brows);
-  scoredSegmentation(lm, brows, byrows);
   boundCols(lm, bcols);
-  scoredSegmentation(lm, bcols, bycols);
-  bs = byrows.size() <= bycols.size() ? byrows : bycols;
+  bool dorows = true, docols = true;
+  if (brows.size() > 5 * bcols.size()) dorows = false;
+  if (bcols.size() > 5 * brows.size()) docols = false;
+  if (dorows) scoredSegmentation(lm, brows, byrows);
+  if (docols) scoredSegmentation(lm, bcols, bycols);
+  if (dorows && docols)
+    bs = byrows.size() <= bycols.size() ? byrows : bycols;
+  else bs = dorows ? byrows : bycols;
   cout << "IslaCompute::segment: lm=" << lm << endl;
   for (int i = 0; i < bs.size(); ++i)
     cout << "  x:" << bs[i].x << " y:" << bs[i].y
