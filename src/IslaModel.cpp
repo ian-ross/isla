@@ -505,15 +505,15 @@ void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
     parseASCIIIslands(fname, isltmp);
 
   // Check...
-  cout << "#islands = " << isltmp.size() << endl;
-  for (int i = 0; i < isltmp.size(); ++i) {
-    vector<wxRect> &ss = isltmp[i].segments;
-    cout << "  " << i+1 << ": " << isltmp[i].name
-         << " (" << ss.size() << ")" << endl;
-    for (int j = 0; j < ss.size(); ++j)
-      cout << "    L:" << ss[j].x << " B:" << ss[j].y
-           << " W:" << ss[j].width << " H:" << ss[j].height << endl;
-  }
+  // cout << "#islands = " << isltmp.size() << endl;
+  // for (int i = 0; i < isltmp.size(); ++i) {
+  //   vector<wxRect> &ss = isltmp[i].segments;
+  //   cout << "  " << i+1 << ": " << isltmp[i].name
+  //        << " (" << ss.size() << ")" << endl;
+  //   for (int j = 0; j < ss.size(); ++j)
+  //     cout << "    L:" << ss[j].x << " B:" << ss[j].y
+  //          << " W:" << ss[j].width << " H:" << ss[j].height << endl;
+  // }
 
   // Set up new island data.
   isles = isltmp;

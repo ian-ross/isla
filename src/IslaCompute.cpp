@@ -27,10 +27,10 @@ void IslaCompute::segment(LMass lm, Boxes &bs)
   if (dorows && docols)
     bs = byrows.size() <= bycols.size() ? byrows : bycols;
   else bs = dorows ? byrows : bycols;
-  cout << "IslaCompute::segment: lm=" << lm << endl;
-  for (int i = 0; i < bs.size(); ++i)
-    cout << "  x:" << bs[i].x << " y:" << bs[i].y
-         << "  w:" << bs[i].width << " h:" << bs[i].height << endl;
+  // cout << "IslaCompute::segment: lm=" << lm << endl;
+  // for (int i = 0; i < bs.size(); ++i)
+  //   cout << "  x:" << bs[i].x << " y:" << bs[i].y
+  //        << "  w:" << bs[i].width << " h:" << bs[i].height << endl;
 }
 
 void IslaCompute::scoredSegmentation(LMass lm, const Boxes &init, Boxes &segs)
