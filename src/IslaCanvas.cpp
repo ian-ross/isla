@@ -221,9 +221,8 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
         int yb = min(latToY(g->lat(jt->y-1)), canh);
         int yt = jt->y-1 + jt->height >= g->nlat() ?
           canh : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
-        if (xl <= xr) {
+        if (xl < xr)
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
-        }
         else {
           dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
           dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
