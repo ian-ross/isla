@@ -7,6 +7,7 @@
 //----------------------------------------------------------------------
 
 #include <algorithm>
+#include <map>
 #include "IslaCompute.hh"
 
 using namespace std;
@@ -16,54 +17,74 @@ using namespace std;
 
 void IslaCompute::segment(LMass lm, Boxes &bs)
 {
-  Boxes brows, byrows, bcols, bycols;
-  boundRows(lm, brows);
-  boundCols(lm, bcols);
+  Seg byrows, bycols;
+  boundRows(lm, byrows);
+  boundCols(lm, bycols);
   bool dorows = true, docols = true;
-  if (brows.size() > 5 * bcols.size()) dorows = false;
-  if (bcols.size() > 5 * brows.size()) docols = false;
-  if (dorows) scoredSegmentation(lm, brows, byrows);
-  if (docols) scoredSegmentation(lm, bcols, bycols);
+  if (byrows.size() > 5 * bycols.size()) dorows = false;
+  if (bycols.size() > 5 * byrows.size()) docols = false;
+  if (dorows) scoredSegmentation(lm, byrows);
+  if (docols) scoredSegmentation(lm, bycols);
   if (dorows && docols)
-    bs = byrows.size() <= bycols.size() ? byrows : bycols;
-  else bs = dorows ? byrows : bycols;
+    extractBoxes(byrows.size() <= bycols.size() ? byrows : bycols, bs);
+  else
+    extractBoxes(dorows ? byrows : bycols, bs);
 }
 
-
-void IslaCompute::scoredSegmentation(LMass lm, const Boxes &init, Boxes &segs)
+void IslaCompute::scoredSegmentation(LMass lm, Seg &segs)
 {
-  if (init.size() == 1)
-    segs = init;
-  else {
-    Boxes before = init, after;
-    while (step(lm, before, after)) before = after;
-    segs = before;
-  }
+  if (segs.size() == 1) return;
+  int segid = segs.size();
+  while (step(lm, segs, segid)) ++segid;
 }
 
-bool IslaCompute::step(LMass lm, const Boxes &before, Boxes &after)
+bool IslaCompute::step(LMass lm, Seg &segs, int segid)
 {
-  if (before.size() == 1) return false;
+  // Determine acceptable merges from candidates for each box.
+  if (segs.size() == 1) return false;
   vector<Merge> ok;
-  Boxes testbs;
-  for (int i = 0; i < before.size(); ++i)
-    for (int j = i + 1; j < before.size(); ++j) {
-      testbs = before;
-      testbs.erase(testbs.begin() + j);
-      testbs.erase(testbs.begin() + i);
-      Box newb = before[i].Union(before[j]);
-      if (!overlap(newb, testbs)) {
-        testbs.push_back(newb);
-        if (admissible(lm, testbs))
-          ok.push_back(Merge(i, j, score(lm, testbs)));
-      }
+  for (Seg::iterator it = segs.begin(); it != segs.end(); ++it) {
+    BoxInfo &a = it->second;
+    for (set<int>::iterator jt = a.cands.begin(); jt != a.cands.end(); ++jt) {
+      Box newb = a.b;
+      newb.Union(segs[*jt].b);
+      if (!overlap(newb, segs, it->first, *jt) && admissible(lm, newb))
+        ok.push_back(Merge(it->first, *jt,
+                           score(lm, segs, newb, it->first, *jt)));
     }
+  }
   if (ok.size() == 0) return false;
+
+  // Find best merge.
   vector<Merge>::const_iterator it = min_element(ok.begin(), ok.end());
-  after = before;
-  after.erase(after.begin() + it->j);
-  after.erase(after.begin() + it->i);
-  after.push_back(before[it->i].Union(before[it->j]));
+  BoxInfo a = segs[it->i], b = segs[it->j], x;
+
+  // Merged box.
+  x.b = a.b;
+  x.b.Union(b.b);
+
+  // Calculate merge candidates for new box.
+  set<int> tmp;
+  set_union(a.cands.begin(), a.cands.end(), b.cands.begin(), b.cands.end(),
+            insert_iterator<set<int> >(tmp, tmp.begin()));
+  set<int> ab;  ab.insert(it->i);  ab.insert(it->j);
+  set_difference(tmp.begin(), tmp.end(), ab.begin(), ab.end(),
+                 insert_iterator<set<int> >(x.cands, x.cands.begin()));
+
+  // Remove old boxes from merge candidates for other segments.
+  for (set<int>::iterator fit = x.cands.begin(); fit != x.cands.end(); ++fit) {
+    set<int> tmp;
+    BoxInfo &fix = segs[*fit];
+    set_difference(fix.cands.begin(), fix.cands.end(), ab.begin(), ab.end(),
+                   insert_iterator<set<int> >(tmp, tmp.begin()));
+    tmp.insert(segid);
+    fix.cands = tmp;
+  }
+
+  // Replace boxes with merged box.
+  segs.erase(it->i);
+  segs.erase(it->j);
+  segs[segid] = x;
   return true;
 }
 
@@ -124,7 +145,7 @@ void IslaCompute::coincidence
 IslaCompute::Box IslaCompute::boundBox(LMass lm)
 {
   bool found = false;
-  int nx = glm.grid()->nlon(), ny = glm.grid()->nlat();
+  int nx = glm.nlon(), ny = glm.nlat();
   int minx = nx-1, maxx = 0, miny = ny-1, maxy = 0;
   for (int x = 0; x < nx; ++x)
     for (int y = 0; y < ny; ++y)
@@ -139,10 +160,12 @@ IslaCompute::Box IslaCompute::boundBox(LMass lm)
     throw runtime_error("Invalid land mass in IslaCompute::boundBox");
 }
 
-void IslaCompute::boundRows(LMass lm, Boxes &rs)
+void IslaCompute::boundRows(LMass lm, Seg &rs)
 {
-  Box bbox = boundBox(lm);
+  Box bbox = lmbbox.find(lm)->second;
   rs.clear();
+  int segid = 0;
+  set<int> last, cur;
   for (int y = 0; y < bbox.height; ++y) {
     vector<int> xs;
     for (int x = 0; x < bbox.width; ++x)
@@ -150,16 +173,33 @@ void IslaCompute::boundRows(LMass lm, Boxes &rs)
         xs.push_back(bbox.x + x);
     vector< pair<int,int> > xruns;
     runs(xs, xruns);
-    for (int i = 0; i < xruns.size(); ++i)
-      rs.push_back(Box(xruns[i].first, bbox.y + y,
-                       xruns[i].second - xruns[i].first + 1, 1));
+    cur.clear();
+    for (int i = 0; i < xruns.size(); ++i) {
+      BoxInfo box;
+      box.b = Box(xruns[i].first, bbox.y + y,
+                  xruns[i].second - xruns[i].first + 1, 1);
+      box.score = -1;
+      if (i > 0) box.cands.insert(segid - 1);
+      if (i < xruns.size() - 1) box.cands.insert(segid + 1);
+      cur.insert(segid);
+      rs[segid++] = box;
+    }
+    for (set<int>::iterator it = cur.begin(); it != cur.end(); ++it) {
+      for (set<int>::iterator jt = last.begin(); jt != last.end(); ++jt) {
+        rs[*it].cands.insert(*jt);
+        rs[*jt].cands.insert(*it);
+      }
+    }
+    last = cur;
   }
 }
 
-void IslaCompute::boundCols(LMass lm, Boxes &cs)
+void IslaCompute::boundCols(LMass lm, Seg &cs)
 {
   Box bbox = boundBox(lm);
   cs.clear();
+  int segid = 0;
+  set<int> last, cur;
   for (int x = 0; x < bbox.width; ++x) {
     vector<int> ys;
     for (int y = 0; y < bbox.height; ++y)
@@ -167,9 +207,24 @@ void IslaCompute::boundCols(LMass lm, Boxes &cs)
         ys.push_back(bbox.y + y);
     vector< pair<int,int> > yruns;
     runs(ys, yruns);
-    for (int i = 0; i < yruns.size(); ++i)
-      cs.push_back(Box(bbox.x + x, yruns[i].first,
-                       1, yruns[i].second - yruns[i].first + 1));
+    cur.clear();
+    for (int i = 0; i < yruns.size(); ++i) {
+      BoxInfo box;
+      box.b = Box(bbox.x + x, yruns[i].first,
+                  1, yruns[i].second - yruns[i].first + 1);
+      box.score = -1;
+      if (i > 0) box.cands.insert(segid - 1);
+      if (i < yruns.size() - 1) box.cands.insert(segid + 1);
+      cur.insert(segid);
+      cs[segid++] = box;
+    }
+    for (set<int>::iterator it = cur.begin(); it != cur.end(); ++it) {
+      for (set<int>::iterator jt = last.begin(); jt != last.end(); ++jt) {
+        cs[*it].cands.insert(*jt);
+        cs[*jt].cands.insert(*it);
+      }
+    }
+    last = cur;
   }
 }
 
@@ -200,31 +255,43 @@ bool IslaCompute::admissible(LMass lm, const Boxes &bs) const
 }
 
 
-// Calculate heuristic score for segment list.  Low scores are better,
-// so inadmissible sets of boxes are assigned a score larger than that
-// for any possible set of boxes.
+// Calculate heuristic score for segment list.  Low scores are better.
+// Inadmissible sets of boxes should never be passed to this function.
 
-int IslaCompute::score(LMass lm, const Boxes &bs) const
+int IslaCompute::score(LMass lm, Seg &ss,
+                       const Box &newb, int exc1, int exc2) const
 {
-  if (!admissible(lm, bs)) return glm.grid()->nlat() * glm.grid()->nlon() + 1;
   int ret = 0;
-  for (Boxes::const_iterator it = bs.begin(); it != bs.end(); ++it) {
-    Box b = *it;
-    for (int x = 0; x < b.width; ++x)
-      for (int y = 0; y < b.height; ++y)
-        if (glm(b.y + y, b.x + x) != lm) ++ret;
+  for (Seg::iterator it = ss.begin(); it != ss.end(); ++it) {
+    if (it->first == exc1 || it->first == exc2) continue;
+    if (it->second.score >= 0)
+      ret += it->second.score;
+    else {
+      Box b = it->second.b;
+      int tmp = 0;
+      for (int x = 0; x < b.width; ++x)
+        for (int y = 0; y < b.height; ++y)
+          if (glm(b.y + y, b.x + x) != lm) ++tmp;
+      it->second.score = tmp;
+      ret += tmp;
+    }
   }
+  for (int x = 0; x < newb.width; ++x)
+    for (int y = 0; y < newb.height; ++y)
+      if (glm(newb.y + y, newb.x + x) != lm) ++ret;
   return ret;
 }
 
 
 // Does a box overlap with any of a given set of boxes?
 
-bool IslaCompute::overlap(const Box &b, const Boxes &bs)
+bool IslaCompute::overlap(const Box &b, const Seg &ss, int exc1, int exc2)
 {
   bool ret = false;
-  for (int i = 0; i < bs.size(); ++i)
-    if (bs[i].Intersects(b)) { ret = true;  break; }
+  for (Seg::const_iterator it = ss.begin(); it != ss.end(); ++it) {
+    if (it->first == exc1 || it->first == exc2) continue;
+    if (it->second.b.Intersects(b)) { ret = true;  break; }
+  }
   return ret;
 }
 
@@ -245,4 +312,14 @@ void IslaCompute::runs(const vector<int> &vs, vector< pair<int,int> > &vruns)
     }
   }
   vruns.push_back(make_pair(start, cur));
+}
+
+
+// Extract segment boxes from segment information map.
+
+void IslaCompute::extractBoxes(const Seg &ss, Boxes &bs)
+{
+  bs.clear();
+  for (Seg::const_iterator it = ss.begin(); it != ss.end(); ++it)
+    bs.push_back(it->second.b);
 }

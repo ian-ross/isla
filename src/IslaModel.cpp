@@ -171,8 +171,9 @@ void IslaModel::setIsIsland(int cr, int cc, bool val)
   if (!mask(cr, cc)) return;
   LMass lm = landmass(cr, cc);
   bool found = false, before;
-  for (int r = 0; r < gr->nlat(); ++r)
-    for (int c = 0; c < gr->nlon(); ++c)
+  int nlat = gr->nlat(), nlon = gr->nlon();
+  for (int r = 0; r < nlat; ++r)
+    for (int c = 0; c < nlon; ++c)
       if (landmass(r, c) == lm) {
         if (!found) {
           before = is_island(r, c);
@@ -190,11 +191,12 @@ void IslaModel::setIsIsland(int cr, int cc, bool val)
 
 template<typename T>
 static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
-                      const GridData<bool> &mask)
+                      const GridData<bool> &mask, wxRect &bbox)
 {
   typedef pair<int,int> Cell;
   stack<Cell> st;
   int nc = res.grid()->nlon(), nr = res.grid()->nlat();
+  int minr = r0, maxr = r0, minc = c0, maxc = c0;
   st.push(Cell(r0, c0));
   while (!st.empty()) {
     Cell chk = st.top();
@@ -202,6 +204,8 @@ static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
     int r = chk.first, c =chk.second;
     if (mask(r, c) && res(r, c) == empty) {
       res(r, c) = val;
+      minr = min(r, minr);  maxr = max(r, maxr);
+      minc = min(c, minc);  maxc = max(c, maxc);
       int cp1 = (c + 1) % nc, cm1 = (c - 1 + nc) % nc;
       st.push(Cell(r, cp1));
       st.push(Cell(r, cm1));
@@ -217,6 +221,7 @@ static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
       }
     }
   }
+  bbox = wxRect(minc, minr, maxc-minc+2, maxr-minr+2);
 }
 
 void IslaModel::calcLandMasses(void)
@@ -229,7 +234,9 @@ void IslaModel::calcLandMasses(void)
     for (int c = 0; c < nlon; ++c) {
       if (landmass(r, c) >= 0) continue;
       if (!mask(r, c)) { landmass(r, c) = 0; continue; }
-      floodFill(landmass, r, c, region++, -1, mask);
+      wxRect bbox;
+      floodFill(landmass, r, c, region++, -1, mask, bbox);
+      lmbbox[landmass(r, c)] = bbox;
     }
 
   // Calculate land mass areas.
@@ -247,8 +254,8 @@ void IslaModel::calcLandMasses(void)
 
   // Mark island regions.
   is_island = false;
-  for (int r = 0; r < gr->nlat(); ++r)
-    for (int c = 0; c < gr->nlon(); ++c)
+  for (int r = 0; r < nlat; ++r)
+    for (int c = 0; c < nlon; ++c)
       is_island(r, c) =
         island_regions.find(landmass(r, c)) != island_regions.end();
 }
@@ -288,11 +295,12 @@ void IslaModel::calcIsMask(void)
 
 void IslaModel::calcIsland(LMass lm)
 {
-  IslaCompute compute(landmass, ismask);
+  IslaCompute compute(landmass, lmbbox, ismask);
   int startr, startc;
   bool found = false;
-  for (startr = 0; startr < gr->nlat(); ++startr) {
-    for (startc = 0; startc < gr->nlon(); ++startc)
+  int nlat = gr->nlat(), nlon = gr->nlon();
+  for (startr = 0; startr < nlat; ++startr) {
+    for (startc = 0; startc < nlon; ++startc)
       if (landmass(startr, startc) == lm) { found = true;  break; }
     if (found) break;
   }

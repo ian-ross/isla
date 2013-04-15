@@ -86,6 +86,9 @@ public:
   void calcIsland(LMass lm);    // Analyse single island.
   void calcIslands(void);       // Determine islands from scratch.
 
+  // Return landmass bounding box map.
+  const std::map<LMass,wxRect> landMassBBox(void) const { return lmbbox; }
+
   // Export current island data.
   void saveIslands(wxString file);
 
@@ -104,6 +107,7 @@ private:
                                 // current mask.
 
   GridData<LMass> landmass;     // Land mass index for current mask.
+  std::map<LMass, wxRect> lmbbox;
   std::vector<double> lmsizes;  // Land mass sizes.
   GridData<bool> is_island;     // Are land points part of an island?
   GridData<int> ismask;         // UM ISMASK for current mask.
