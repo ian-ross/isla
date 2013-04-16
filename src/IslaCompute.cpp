@@ -29,6 +29,7 @@ void IslaCompute::segment(LMass lm, Boxes &bs)
     extractBoxes(byrows.size() <= bycols.size() ? byrows : bycols, bs);
   else
     extractBoxes(dorows ? byrows : bycols, bs);
+  fixPolar(lm, bs);
 }
 
 void IslaCompute::scoredSegmentation(LMass lm, Seg &segs)
@@ -137,6 +138,31 @@ void IslaCompute::coincidence
 //     }
 //   }
 // #endif
+}
+
+
+// Optimise polar islands.
+
+void IslaCompute::fixPolar(LMass lm, Boxes &bs)
+{
+  int nx = glm.nlon(), ny = glm.nlat();
+  for (Boxes::iterator it = bs.begin(); it != bs.end(); ++it) {
+    if (it->width == nx && (it->y == 0 || it->y + it->height == ny)) {
+      while(it->height > 1 && fullCircle(lm, it->y + 1)) {
+        ++it->y;
+        --it->height;
+      }
+    }
+  }
+}
+
+bool IslaCompute::fullCircle(LMass lm, int y)
+{
+  bool ret = true;
+  int nx = glm.nlon();
+  for (int x = 0; x < nx; ++x)
+    if (glm(y, x) != lm) { ret = false; break; }
+  return ret;
 }
 
 

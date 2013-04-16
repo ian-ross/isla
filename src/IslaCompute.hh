@@ -49,6 +49,10 @@ public:
   static void coincidence(const Boxes &bs,
                           IslaModel::CoincInfo &v, IslaModel::CoincInfo &h);
 
+  // Remove redundant rows for polar "round the world" segments.
+  void fixPolar(LMass lm, Boxes &bs);
+  bool fullCircle(LMass lm, int y);
+
   // Determine bounding regions for a given landmass.
   Box boundBox(LMass lm);
   void boundRows(LMass lm, Seg &rs);
