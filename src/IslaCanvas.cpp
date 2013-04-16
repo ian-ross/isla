@@ -147,7 +147,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   GridPtr g = model->grid();
   int nlon = g->nlon(), nlat = g->nlat();
   int nhor = min(static_cast<double>(nlon), mapw / (minDlon * scale) + 1) + 1;
-  int nver = min(static_cast<double>(nlat), maph / (minDlat * scale) + 2);
+  int nver = min(static_cast<double>(nlat), maph / (minDlat * scale) + 3);
   int lon0 = XToLon(0), lat0 = YToLat(maph);
   int ilon0 = 0, ilat0 = 0;
   double loni = g->lon(ilon0), loni1 = g->lon((ilon0 + 1) % nlon);
@@ -157,7 +157,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     loni1 = g->lon((ilon0 + 1) % nlon);
   }
   while (g->lat(ilat0) < lat0) ++ilat0;
-  ilat0 = ilat0 > 0 ? ilat0 - 1 : ilat0;
+  ilat0 = ilat0 > 0 ? ilat0 - 3 : ilat0;
   wxPaintDC dc(this);
 
   // Clear grid cell and axis areas.
@@ -376,7 +376,7 @@ void IslaCanvas::drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
     int x = lonToX(g->lon((vit->first-1 + nlon) % nlon));
     int yb = min(latToY(g->lat(vit->second.first-1)), canh);
     int yt = vit->second.second >= g->nlat() ?
-      0 : max(0.0, latToY(g->lat(vit->second.second-1)));
+      0 : latToY(g->lat(vit->second.second-1));
     int xl = x - dx / 2, xr = x + dx / 2;
     if (xl < xr)
       dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
