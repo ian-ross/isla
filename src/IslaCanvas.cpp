@@ -357,7 +357,7 @@ void IslaCanvas::drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
        jt != segs.end(); ++jt) {
     int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
     int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
-    int yb = min(latToY(g->lat(jt->y-1)), canh);
+    int yb = min(latToY(g->lat(max(0, jt->y-1))), canh);
     int yt = jt->y-1 + jt->height >= g->nlat() ?
       0 : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
     if (xl < xr)
