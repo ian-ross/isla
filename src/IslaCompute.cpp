@@ -123,11 +123,11 @@ void IslaCompute::coincidence
     int l1 = i1->x, b1 = i1->y, r1 = l1 + i1->width, t1 = b1 + i1->height;
     for (Boxes::const_iterator i2 = i1 + 1; i2 != bs.end(); ++i2) {
       int l2 = i2->x, b2 = i2->y, r2 = l2 + i2->width, t2 = b2 + i2->height;
-      if ((r1 == l2 || l1 == r2) &&
+      if (((r1 - l2 + 360) % 360 == 0 || (l1 - r2 + 360) % 360 == 0) &&
           (b1 >= b2 && b1 <= t2 || t1 >= b2 && t1 <= t2 ||
            b2 >= b1 && b2 <= t1 || t2 >= b1 && t2 <= t1)) {
         pair<int, int> bnds = make_pair(max(b1,b2), min(t1,t2));
-        v.insert(make_pair(r1 == l2 ? r1 : l1, bnds));
+        v.insert(make_pair((r1 - l2 + 360) % 360 == 0 ? r1 : l1, bnds));
       }
       if ((t1 == b2 || b1 == t2) &&
           (l1 >= l2 && l1 <= r2 || r1 >= l2 && r1 <= r2 ||
