@@ -34,3 +34,4 @@ Makefile
 /src/test/test_LoadMask
 /src/test/test_grid.nc
 /build/*
+/delivery/*
