@@ -221,7 +221,8 @@ static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
       }
     }
   }
-  bbox = wxRect(minc, minr, maxc-minc+2, maxr-minr+2);
+  bbox = wxRect(minc, minr,
+                maxc-minc+1 + (maxc-minc+1 == nc ? 0 : 1), maxr-minr+2);
 }
 
 void IslaModel::calcLandMasses(void)
