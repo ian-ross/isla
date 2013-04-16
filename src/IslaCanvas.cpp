@@ -293,10 +293,10 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     wxString txt;
     GridPtr g = model->grid();
     for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon) {
-      int x = xoff + lonToX(g->lon(c)) - tw / 2;
+      int x = xoff + lonToX(iclons[c]) - tw / 2;
       for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
         txt.Printf(_("%d"), model->isMask(r, c));
-        int y = latToY(g->lat(r));
+        int y = latToY(iclats[r]);
         dc.DrawText(txt, x, yoff + y - th / 2);
       }
     }
