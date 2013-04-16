@@ -147,7 +147,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   GridPtr g = model->grid();
   int nlon = g->nlon(), nlat = g->nlat();
   int nhor = min(static_cast<double>(nlon), mapw / (minDlon * scale) + 1) + 1;
-  int nver = min(static_cast<double>(nlat), maph / (minDlat * scale) + 3);
+  int nver = min(static_cast<double>(nlat), maph / (minDlat * scale) + 6);
   int lon0 = XToLon(0), lat0 = YToLat(maph);
   int ilon0 = 0, ilat0 = 0;
   double loni = g->lon(ilon0), loni1 = g->lon((ilon0 + 1) % nlon);
@@ -157,7 +157,7 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     loni1 = g->lon((ilon0 + 1) % nlon);
   }
   while (g->lat(ilat0) < lat0) ++ilat0;
-  ilat0 = ilat0 > 0 ? ilat0 - 3 : ilat0;
+  ilat0 = max(0, ilat0 - 3);
   wxPaintDC dc(this);
 
   // Clear grid cell and axis areas.
