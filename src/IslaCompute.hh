@@ -19,16 +19,19 @@
 class IslaCompute {
 public:
   typedef wxRect Box;
+  typedef int Score;
+  typedef int BoxID;
   struct BoxInfo {
     Box b;                      // Box.
-    std::set<int> cands;        // IDs of merge candidates.
-    int score;                  // Cached score for this box.
+    std::set<BoxID> cands;      // IDs of merge candidates.
+    Score score;                // Cached score for this box.
   };
-  typedef std::map<int, BoxInfo> Seg;
+  typedef std::map<BoxID, BoxInfo> Seg;
   typedef std::vector<Box> Boxes;
   struct Merge {
-    int i, j, score;
-    Merge(int ii, int ij, int iscore) : i(ii), j(ij), score(iscore) { }
+    BoxID i, j;
+    Score score;
+    Merge(BoxID ii, BoxID ij, Score iscore) : i(ii), j(ij), score(iscore) { }
     bool operator<(Merge other) { return score < other.score; }
   };
 
@@ -40,7 +43,7 @@ public:
   // Calculate island segments for given landmass.
   void segment(LMass lm, Boxes &bs);
   void scoredSegmentation(LMass lm, Seg &segs);
-  bool step(LMass lm, Seg &segs, int segid);
+  bool step(LMass lm, Seg &segs, BoxID segid);
 
   // Compute coincidence line segments between adjacent island
   // segments (used for distinguishing spatially adjacent segments
@@ -65,7 +68,7 @@ public:
   bool admissible(LMass lm, const Boxes &b) const;
 
   // Calculate heuristic score for segment list.
-  int score(LMass lm, Seg &ss, const Box &newb, int exc1, int exc2) const;
+  Score score(LMass lm, Seg &ss, const Box &newb, int exc1, int exc2) const;
 
 
   // Does a box overlap with any of a given set of boxes?
@@ -82,6 +85,8 @@ private:
   const GridData<LMass> &glm;
   const std::map<LMass, wxRect> &lmbbox;
   const GridData<int> &ismask;
+  std::map<BoxID, std::set<BoxID> > known_bad;
+  std::map<BoxID, std::map<BoxID, Score> > known_good;
 };
 
 #endif

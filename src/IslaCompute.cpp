@@ -35,52 +35,73 @@ void IslaCompute::segment(LMass lm, Boxes &bs)
 void IslaCompute::scoredSegmentation(LMass lm, Seg &segs)
 {
   if (segs.size() == 1) return;
-  int segid = segs.size();
+  BoxID segid = segs.size();
+  known_bad.clear();
+  known_good.clear();
   while (step(lm, segs, segid)) ++segid;
 }
 
-bool IslaCompute::step(LMass lm, Seg &segs, int segid)
+bool IslaCompute::step(LMass lm, Seg &segs, BoxID segid)
 {
   // Determine acceptable merges from candidates for each box.
   if (segs.size() == 1) return false;
   vector<Merge> ok;
   for (Seg::iterator it = segs.begin(); it != segs.end(); ++it) {
+    BoxID aid = it->first;
+    set<BoxID> &bads = known_bad[aid];
+    map<BoxID, Score> &goods = known_good[aid];
     BoxInfo &a = it->second;
-    for (set<int>::iterator jt = a.cands.begin(); jt != a.cands.end(); ++jt) {
-      Box newb = a.b;
-      newb.Union(segs[*jt].b);
-      if (!overlap(newb, segs, it->first, *jt) && admissible(lm, newb))
-        ok.push_back(Merge(it->first, *jt,
-                           score(lm, segs, newb, it->first, *jt)));
+    for (set<BoxID>::iterator jt = a.cands.begin(); jt != a.cands.end(); ++jt) {
+      BoxID bid = *jt;
+      if (bads.find(bid) != bads.end()) continue;
+      map<BoxID, Score>::iterator git = goods.find(bid);
+      if (git != goods.end())
+        ok.push_back(Merge(aid, bid, git->second));
+      else {
+        Box newb = a.b;
+        newb.Union(segs[bid].b);
+        if (!overlap(newb, segs, aid, bid) && admissible(lm, newb)) {
+          Score sc = score(lm, segs, newb, aid, bid);
+          goods[bid] = sc;
+          ok.push_back(Merge(aid, bid, sc));
+        } else bads.insert(bid);
+      }
     }
   }
   if (ok.size() == 0) return false;
 
   // Find best merge.
   vector<Merge>::const_iterator it = min_element(ok.begin(), ok.end());
-  BoxInfo a = segs[it->i], b = segs[it->j], x;
+  BoxID aid = it->i, bid = it->j;
+  BoxInfo a = segs[aid], b = segs[bid], x;
 
   // Merged box.
   x.b = a.b;
   x.b.Union(b.b);
 
   // Calculate merge candidates for new box.
-  set<int> tmp;
+  set<BoxID> tmp;
   set_union(a.cands.begin(), a.cands.end(), b.cands.begin(), b.cands.end(),
-            insert_iterator<set<int> >(tmp, tmp.begin()));
-  set<int> ab;  ab.insert(it->i);  ab.insert(it->j);
+            insert_iterator<set<BoxID> >(tmp, tmp.begin()));
+  set<BoxID> ab;  ab.insert(it->i);  ab.insert(it->j);
   set_difference(tmp.begin(), tmp.end(), ab.begin(), ab.end(),
-                 insert_iterator<set<int> >(x.cands, x.cands.begin()));
+                 insert_iterator<set<BoxID> >(x.cands, x.cands.begin()));
 
   // Remove old boxes from merge candidates for other segments.
-  for (set<int>::iterator fit = x.cands.begin(); fit != x.cands.end(); ++fit) {
-    set<int> tmp;
+  for (set<BoxID>::iterator fit = x.cands.begin();
+       fit != x.cands.end(); ++fit) {
+    set<BoxID> tmp;
     BoxInfo &fix = segs[*fit];
     set_difference(fix.cands.begin(), fix.cands.end(), ab.begin(), ab.end(),
-                   insert_iterator<set<int> >(tmp, tmp.begin()));
+                   insert_iterator<set<BoxID> >(tmp, tmp.begin()));
     tmp.insert(segid);
     fix.cands = tmp;
   }
+
+  // Clear "known good" and "known bad" cache items for boxes being
+  // merged.
+  known_bad.erase(aid);   known_bad.erase(bid);
+  known_good.erase(aid);  known_good.erase(bid);
 
   // Replace boxes with merged box.
   segs.erase(it->i);
