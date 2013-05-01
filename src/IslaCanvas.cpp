@@ -30,6 +30,7 @@ BEGIN_EVENT_TABLE(IslaCanvas, wxWindow)
   EVT_MOUSEWHEEL       (IslaCanvas::OnMouse)
   EVT_ERASE_BACKGROUND (IslaCanvas::OnEraseBackground)
   EVT_CONTEXT_MENU     (IslaCanvas::OnContextMenu)
+  EVT_KEY_DOWN         (IslaCanvas::OnKey)
   EVT_MENU (ID_CTX_TOGGLE_ISLAND,  IslaCanvas::OnContextMenuEvent)
   EVT_MENU (ID_CTX_COARSEN_ISLAND, IslaCanvas::OnContextMenuEvent)
   EVT_MENU (ID_CTX_REFINE_ISLAND,  IslaCanvas::OnContextMenuEvent)
@@ -705,6 +706,20 @@ void IslaCanvas::Pan(int dx, int dy)
   if (fabs(clat - clatb) * scale < 1) clat = clatb;
   SetupAxes(dx != 0, dy != 0);
   Refresh();
+}
+
+
+// Key handler.
+
+void IslaCanvas::OnKey(wxKeyEvent &e)
+{
+  int d = MinCellSize();
+  switch (e.GetKeyCode()) {
+  case WXK_LEFT:  Pan(d, 0);   e.Skip();  break;
+  case WXK_RIGHT: Pan(-d, 0);  e.Skip();  break;
+  case WXK_DOWN:  Pan(0, -d);  e.Skip();  break;
+  case WXK_UP:    Pan(0, d);   e.Skip();  break;
+  }
 }
 
 

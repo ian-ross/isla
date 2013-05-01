@@ -67,6 +67,7 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
 
   EVT_MENU  (wxID_ABOUT,            IslaFrame::OnMenu)
   EVT_CLOSE (                       IslaFrame::OnClose)
+
 #ifdef ISLA_DEBUG
   EVT_MENU  (ID_DEBUG_SIZE_OVERLAY,     IslaFrame::OnDebug)
   EVT_MENU  (ID_DEBUG_REGION_OVERLAY,   IslaFrame::OnDebug)
@@ -90,39 +91,39 @@ IslaFrame::IslaFrame() :
                    _("Clear land/sea mask and island data"));
   menuFile->Append(wxID_OPEN, _("&Load land/sea mask..."),
                    _("Load land/sea mask data from a NetCDF file"));
-  menuFile->Append(wxID_SAVEAS, _("Sa&ve land/sea mask..."),
+  menuFile->Append(wxID_SAVE, _("Sa&ve land/sea mask..."),
                    _("Save current land/sea mask data to a NetCDF file"));
-  menuFile->Append(ID_EXPORT_ISLAND_DATA, _("&Export island data..."),
+  menuFile->Append(ID_EXPORT_ISLAND_DATA, _("&Export island data...\tCtrl-E"),
                    _("Write new island data file"));
   menuFile->AppendSeparator();
   menuFile->Append(ID_IMPORT_ISLCMP_DATA,
-                   _("&Import island comparison data..."),
+                   _("&Import island comparison data...\tCtrl-I"),
                    _("Import island data file for comparison purposes"));
-  menuFile->Append(ID_CLEAR_ISLCMP_DATA, _("&Clear island comparison data"),
+  menuFile->Append(ID_CLEAR_ISLCMP_DATA,
+                   _("&Clear island comparison data\tCtrl-C"),
                    _("Clear island data file used for comparison purposes"));
   menuFile->AppendSeparator();
   menuFile->Append(wxID_PREFERENCES);
   menuFile->Append(wxID_EXIT);
 
-  menuView->Append(wxID_ZOOM_IN, wxEmptyString, _("Zoom in"));
-  menuView->Append(wxID_ZOOM_OUT, wxEmptyString, _("Zoom out"));
-  menuView->Append(wxID_ZOOM_FIT, wxEmptyString, _("Zoom to fit"));
+  menuView->Append(wxID_ZOOM_IN, _("Zoom in\t+"), _("Zoom in"));
+  menuView->Append(wxID_ZOOM_OUT, _("Zoom out\t-"), _("Zoom out"));
+  menuView->Append(wxID_ZOOM_FIT, _("Zoom to fit\tF"), _("Zoom to fit"));
   wxMenuItem *zoomsel_item =
-    new wxMenuItem(menuView, ID_ZOOM_SELECTION, _("Zoom to &selection"),
+    new wxMenuItem(menuView, ID_ZOOM_SELECTION, _("Zoom to &selection\tZ"),
                    _("Zoom to selection"));
   zoomsel_item->SetBitmap(wxBITMAP(zoom_select));
   menuView->Append(zoomsel_item);
-  menuView->AppendCheckItem(ID_PAN, _("&Pan"), _("Pan view"));
+  menuView->AppendCheckItem(ID_PAN, _("&Pan\tP"), _("Pan view"));
   menuView->AppendSeparator();
-  menuView->AppendCheckItem(ID_SHOW_ISLANDS, _("Show islands"),
+  menuView->AppendCheckItem(ID_SHOW_ISLANDS, _("Show islands\tI"),
                             _("Display island outlines on map"));
   menuView->AppendCheckItem(ID_SHOW_COMPARISON,
-                            _("Show comparison"),
+                            _("Show comparison\tC"),
                             _("Display island comparison data on map"));
 
-  menuTools->AppendCheckItem(ID_SELECT, _("&Select\tCtrl-S"),
-                             _("Select items"));
-  menuTools->AppendCheckItem(ID_EDIT_MASK, _("&Edit land/sea mask\tCtrl-E"),
+  menuTools->AppendCheckItem(ID_SELECT, _("&Select"), _("Select items"));
+  menuTools->AppendCheckItem(ID_EDIT_MASK, _("&Edit land/sea mask"),
                              _("Edit land/sea mask by "
                                "toggling state of cells"));
 
@@ -225,6 +226,7 @@ IslaFrame::IslaFrame() :
   sizer3->SetSizeHints(this);
 
   UpdateUI();
+  canvas->SetFocus();
 }
 
 // Enable or disable tools and menu entries according to the current
@@ -472,3 +474,4 @@ void IslaFrame::OnShowChange(wxCommandEvent &e)
   UpdateUI();
   canvas->Refresh();
 }
+

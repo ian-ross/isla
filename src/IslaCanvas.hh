@@ -84,6 +84,7 @@ public:
   void OnPaint(wxPaintEvent &e);
   void OnMouse(wxMouseEvent &e);
   void OnSize(wxSizeEvent &e);
+  void OnKey(wxKeyEvent &e);
   void OnEraseBackground(wxEraseEvent &e) { }
   void OnContextMenu(wxContextMenuEvent& e);
   void OnContextMenuEvent(wxCommandEvent &e);
