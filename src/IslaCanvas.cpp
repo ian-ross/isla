@@ -30,7 +30,10 @@ BEGIN_EVENT_TABLE(IslaCanvas, wxWindow)
   EVT_MOUSEWHEEL       (IslaCanvas::OnMouse)
   EVT_ERASE_BACKGROUND (IslaCanvas::OnEraseBackground)
   EVT_CONTEXT_MENU     (IslaCanvas::OnContextMenu)
-  EVT_MENU (ID_CTX_TOGGLE_ISLAND, IslaCanvas::OnContextMenuEvent)
+  EVT_MENU (ID_CTX_TOGGLE_ISLAND,  IslaCanvas::OnContextMenuEvent)
+  EVT_MENU (ID_CTX_COARSEN_ISLAND, IslaCanvas::OnContextMenuEvent)
+  EVT_MENU (ID_CTX_REFINE_ISLAND,  IslaCanvas::OnContextMenuEvent)
+  EVT_MENU (ID_CTX_RESET_ISLAND,   IslaCanvas::OnContextMenuEvent)
 END_EVENT_TABLE()
 
 
@@ -90,6 +93,13 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   // Create context menu.
   popup = new wxMenu();
   popup->Append(ID_CTX_TOGGLE_ISLAND, _("Landmass island toggle"));
+  popup->AppendSeparator();
+  island_actions.push_back(popup->Append(ID_CTX_COARSEN_ISLAND,
+                                         _("Coarsen island segmentation")));
+  island_actions.push_back(popup->Append(ID_CTX_REFINE_ISLAND,
+                                         _("Refine island segmentation")));
+  island_actions.push_back(popup->Append(ID_CTX_RESET_ISLAND,
+                                         _("Reset island segmentation")));
 }
 
 
@@ -515,28 +525,37 @@ void IslaCanvas::ProcessEdit(wxMouseEvent &event)
 
 void IslaCanvas::OnContextMenu(wxContextMenuEvent &event)
 {
-  popup_pos = ScreenToClient(event.GetPosition());
+  wxPoint pos = ScreenToClient(event.GetPosition());
+  if (pos.y < yoff || pos.y > canh - yoff ||
+      pos.x < xoff || pos.x > canw - yoff)
+    return;
+  popup_col = lonToCol(XToLon(pos.x - xoff));
+  popup_row = latToRow(YToLat(pos.y - yoff));
+  if (!model->maskVal(popup_row, popup_col)) return;
+  bool island_active = model->isIsland(popup_row, popup_col);
+  for (vector<wxMenuItem *>::iterator it = island_actions.begin();
+       it != island_actions.end(); ++it)
+    (*it)->Enable(island_active);
   PopupMenu(popup);
 }
 
 void IslaCanvas::OnContextMenuEvent(wxCommandEvent &event)
 {
   switch (event.GetId()) {
-  case ID_CTX_TOGGLE_ISLAND: ToggleIsland(popup_pos); break;
+  case ID_CTX_TOGGLE_ISLAND:
+    model->setIsIsland(popup_row, popup_col,
+                       !model->isIsland(popup_row, popup_col));
+    break;
+  case ID_CTX_COARSEN_ISLAND:
+    model->coarsenIsland(popup_row, popup_col);
+    break;
+  case ID_CTX_REFINE_ISLAND:
+    model->refineIsland(popup_row, popup_col);
+    break;
+  case ID_CTX_RESET_ISLAND:
+    model->resetIsland(popup_row, popup_col);
+    break;
   }
-}
-
-
-// Toggle island state for landmass under a given point.
-
-void IslaCanvas::ToggleIsland(wxPoint pos)
-{
-  if (pos.y < yoff || pos.y > canh - yoff ||
-      pos.x < xoff || pos.x > canw - yoff)
-    return;
-  int c = lonToCol(XToLon(pos.x - xoff)), r = latToRow(YToLat(pos.y - yoff));
-  if (!model->maskVal(r, c)) return;
-  model->setIsIsland(r, c, !model->isIsland(r, c));
   Refresh();
 }
 

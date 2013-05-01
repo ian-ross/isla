@@ -240,11 +240,14 @@ void IslaModel::calcLandMasses(void)
     }
 
   // Calculate land mass areas.
-  lmsizes.clear();
-  lmsizes.resize(nlandmass+1, 0.0);
+  lmsizes.clear();   lmsizes.resize(nlandmass+1, 0.0);
+  lmcounts.clear();  lmcounts.resize(nlandmass+1, 0.0);
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c)
-      if (landmass(r, c) >= 0) lmsizes[landmass(r, c)] += gr->cellArea(r, c);
+      if (landmass(r, c) >= 0) {
+        ++lmcounts[landmass(r, c)];
+        lmsizes[landmass(r, c)] += gr->cellArea(r, c);
+      }
 
   // Filter for islands based on size threshold.
   set<LMass> island_regions;
@@ -368,7 +371,8 @@ void IslaModel::calcIsland(LMass lm)
   char tmp[15];
   sprintf(tmp, "Landmass %d", lm);
   is.name = tmp;
-  compute.segment(lm, is.segments);
+  if (isles.find(lm) != isles.end()) is.minsegs = isles[lm].minsegs;
+  compute.segment(lm, isles[lm].minsegs, is.segments);
   IslaCompute::coincidence(is.segments, is.vcoinc, is.hcoinc);
   isles[lm] = is;
 }
@@ -379,9 +383,46 @@ void IslaModel::calcIsland(LMass lm)
 void IslaModel::calcIslands(void)
 {
   // For each island landmass...
-  for (LMass lm = 1; lm < lmsizes.size(); ++lm) calcIsland(lm);
+  for (LMass lm = 1; lm < lmsizes.size(); ++lm) {
+    calcIsland(lm);
+    isles[lm].absminsegs = isles[lm].segments.size();
+  }
 }
 
+
+// Segmentation control methods.
+
+void IslaModel::coarsenIsland(int r, int c)
+{
+  LMass lm = landmass(r, c);
+  int cursegs = isles[lm].segments.size();
+  while (isles[lm].segments.size() == cursegs &&
+         isles[lm].minsegs > isles[lm].absminsegs) {
+    isles[lm].minsegs = max(isles[lm].minsegs - 1, isles[lm].absminsegs);
+    calcIsland(lm);
+  }
+}
+
+void IslaModel::refineIsland(int r, int c)
+{
+  LMass lm = landmass(r, c);
+  int cursegs = isles[lm].segments.size();
+  while (isles[lm].segments.size() == cursegs &&
+         isles[lm].minsegs < lmcounts[lm]) {
+    isles[lm].minsegs = min(isles[lm].minsegs + 1, lmcounts[lm]);
+    calcIsland(lm);
+  }
+}
+
+void IslaModel::resetIsland(int r, int c)
+{
+  LMass lm = landmass(r, c);
+  isles[lm].minsegs = isles[lm].absminsegs;
+  calcIsland(lm);
+}
+
+
+// File handling functions.
 
 static void swap_bytes(void *buf, int nbytes, int n)
 {

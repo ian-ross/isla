@@ -37,6 +37,9 @@ enum {
 
   // Context menu
   ID_CTX_TOGGLE_ISLAND,
+  ID_CTX_COARSEN_ISLAND,
+  ID_CTX_REFINE_ISLAND,
+  ID_CTX_RESET_ISLAND,
 
 #ifdef ISLA_DEBUG
   // Debug menu

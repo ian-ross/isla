@@ -120,9 +120,6 @@ private:
   // Find scale to fit map to canvas.
   double FitScale(void) const;
 
-  // Toggle landmass state at given canvas point.
-  void ToggleIsland(wxPoint pos);
-
   // Conversion from model (lat/lon) to canvas coordinates.
   double latToY(double lat) const { return maph / 2 - (lat - clat) * scale; }
   double lonToX(double lon) const {
@@ -158,7 +155,10 @@ private:
 
   IslaFrame *frame;             // Parent frame.
   wxMenu *popup;                // Popup context menu.
-  wxPoint popup_pos;            // Popup location (canvas coords).
+  int popup_row, popup_col;     // Popup location (grid cell coords).
+
+  // Menu items for island-related popup actions.
+  std::vector<wxMenuItem *> island_actions;
 
   // Window layout parameters.  Dimensions are stored as exact double
   // values to avoid rounding problems.

@@ -15,30 +15,16 @@ using namespace std;
 
 // Calculate island segments for given landmass.
 
-void dumpSeg(const IslaCompute::Seg &seg)
-{
-  for (IslaCompute::Seg::const_iterator it = seg.begin();
-       it != seg.end(); ++it) {
-    IslaCompute::BoxID id = it->first;
-    const IslaCompute::Box &b = it->second.b;
-    cout << "ID " << id
-         << ": x=" << b.x << " y=" << b.y
-         << " w=" << b.width << " h=" << b.height << endl;
-  }
-}
-
-void IslaCompute::segment(LMass lm, Boxes &bs)
+void IslaCompute::segment(LMass lm, int minsegs, Boxes &bs)
 {
   Seg byrows, bycols;
   boundRows(lm, byrows);
-  //  cout << "byRows:" << endl; dumpSeg(byrows);
   boundCols(lm, bycols);
-  //  cout << "byCols:" << endl; dumpSeg(bycols);
   bool dorows = true, docols = true;
   if (byrows.size() > 5 * bycols.size()) dorows = false;
   if (bycols.size() > 5 * byrows.size()) docols = false;
-  if (dorows) scoredSegmentation(lm, byrows);
-  if (docols) scoredSegmentation(lm, bycols);
+  if (dorows) scoredSegmentation(lm, minsegs, byrows);
+  if (docols) scoredSegmentation(lm, minsegs, bycols);
   if (dorows && docols)
     extractBoxes(byrows.size() <= bycols.size() ? byrows : bycols, bs);
   else
@@ -46,19 +32,21 @@ void IslaCompute::segment(LMass lm, Boxes &bs)
   fixPolar(lm, bs);
 }
 
-void IslaCompute::scoredSegmentation(LMass lm, Seg &segs)
+void IslaCompute::scoredSegmentation(LMass lm, int minsegs, Seg &segs)
 {
   if (segs.size() == 1) return;
   BoxID segid = segs.size();
   known_bad.clear();
   known_good.clear();
-  while (step(lm, segs, segid)) ++segid;
+  while (step(lm, minsegs, segs, segid)) ++segid;
 }
 
-bool IslaCompute::step(LMass lm, Seg &segs, BoxID segid)
+bool IslaCompute::step(LMass lm, int minsegs, Seg &segs, BoxID segid)
 {
   // Determine acceptable merges from candidates for each box.
-  if (segs.size() == 1) return false;
+  double sc = static_cast<double>(score(lm, segs));
+  double sz = static_cast<double>(segs.size());
+  if (segs.size() <= minsegs) return false;
   vector<Merge> ok;
   for (Seg::iterator it = segs.begin(); it != segs.end(); ++it) {
     BoxID aid = it->first;
@@ -324,11 +312,12 @@ bool IslaCompute::admissible(LMass lm, const Boxes &bs) const
 // Inadmissible sets of boxes should never be passed to this function.
 
 int IslaCompute::score(LMass lm, Seg &ss,
-                       const Box &newb, int exc1, int exc2) const
+                       const Box *newb, int exc1, int exc2) const
 {
   int ret = 0;
   for (Seg::iterator it = ss.begin(); it != ss.end(); ++it) {
-    if (it->first == exc1 || it->first == exc2) continue;
+    if (exc1 > 0 && it->first == exc1 ||
+        exc2 > 0 && it->first == exc2) continue;
     if (it->second.score >= 0)
       ret += it->second.score;
     else {
@@ -341,9 +330,10 @@ int IslaCompute::score(LMass lm, Seg &ss,
       ret += tmp;
     }
   }
-  for (int x = 0; x < newb.width; ++x)
-    for (int y = 0; y < newb.height; ++y)
-      if (glm(newb.y + y, newb.x + x) != lm) ++ret;
+  if (newb)
+    for (int x = 0; x < newb->width; ++x)
+      for (int y = 0; y < newb->height; ++y)
+        if (glm(newb->y + y, newb->x + x) != lm) ++ret;
   return ret;
 }
 

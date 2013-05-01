@@ -42,9 +42,9 @@ public:
     glm(glmin), lmbbox(lmbboxin), ismask(ismaskin) { }
 
   // Calculate island segments for given landmass.
-  void segment(LMass lm, Boxes &bs);
-  void scoredSegmentation(LMass lm, Seg &segs);
-  bool step(LMass lm, Seg &segs, BoxID segid);
+  void segment(LMass lm, int minsegs, Boxes &bs);
+  void scoredSegmentation(LMass lm, int minsegs, Seg &segs);
+  bool step(LMass lm, int minsegs, Seg &segs, BoxID segid);
 
   // Compute coincidence line segments between adjacent island
   // segments (used for distinguishing spatially adjacent segments
@@ -69,7 +69,11 @@ public:
   bool admissible(LMass lm, const Boxes &b) const;
 
   // Calculate heuristic score for segment list.
-  Score score(LMass lm, Seg &ss, const Box &newb, int exc1, int exc2) const;
+  Score score(LMass lm, Seg &ss,
+              const Box *newb = 0, int exc1 = -1, int exc2 = -1) const;
+  Score score(LMass lm, Seg &ss, const Box &newb, int exc1, int exc2) const {
+    return score(lm, ss, &newb, exc1, exc2);
+  }
 
 
   // Does a box overlap with any of a given set of boxes?

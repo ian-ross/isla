@@ -36,8 +36,9 @@ public:
   // Structures used for recording island information.
   typedef std::multimap<int, std::pair<int, int> > CoincInfo;
   struct IslandInfo {
-    IslandInfo() { }
+    IslandInfo(): minsegs(1), absminsegs(1) { }
     std::string name;
+    int minsegs, absminsegs;
     std::vector<wxRect> segments;
     CoincInfo vcoinc;
     CoincInfo hcoinc;
@@ -95,6 +96,11 @@ public:
   void calcIsland(LMass lm);    // Analyse single island.
   void calcIslands(void);       // Determine islands from scratch.
 
+  // Control island segmentation level of detail.
+  void coarsenIsland(int r, int c);
+  void refineIsland(int r, int c);
+  void resetIsland(int r, int c);
+
   // Return landmass bounding box map.
   const std::map<LMass,BBox> landMassBBox(void) const { return lmbbox; }
 
@@ -118,6 +124,7 @@ private:
   GridData<LMass> landmass;     // Land mass index for current mask.
   int nlandmass;                // Number of landmasses.
   std::map<LMass, BBox> lmbbox;
+  std::vector<int> lmcounts;    // Land mass box counts.
   std::vector<double> lmsizes;  // Land mass sizes.
   GridData<bool> is_island;     // Are land points part of an island?
   GridData<int> ismask;         // UM ISMASK for current mask.
