@@ -611,7 +611,8 @@ void IslaCanvas::SetupAxes(bool dox, bool doy)
     }
     int mindpos, maxtw;
     for (int i = 0; i < nlat; ++i) {
-      int dpos = fabs(poss[i+1] - poss[i]);
+      int dpos = i < nlat-1 ?
+                     fabs(poss[i+1] - poss[i]) : fabs(poss[i] - poss[i-1]);
       if (i == 0 || dpos > 0 && dpos < mindpos) mindpos = dpos;
       if (i == 0 || tws[i] > maxtw) maxtw = tws[i];
     }

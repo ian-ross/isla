@@ -89,6 +89,7 @@ IslaModel::IslaModel() :
   mask(orig_mask),              // Unchanged from "original".
   grid_changes(0),
   landmass(gr, 0),              // All ocean.
+  nlandmass(0),
   is_island(gr, false),         // All ocean.
   ismask(gr, 0)                 // All ocean.
 { }
@@ -115,6 +116,8 @@ void IslaModel::loadMask(std::string file, std::string var)
   orig_mask = new_mask;
   mask = orig_mask;
   is_island = GridData<bool>(newgr, false);
+  landmass = GridData<LMass>(newgr, 0);
+  ismask = GridData<int>(newgr, 0);
   recalcAll();
 }
 
@@ -155,10 +158,9 @@ void IslaModel::saveMask(std::string file)
 
 void IslaModel::recalcAll(void)
 {
-  landmass = GridData<LMass>(gr, 0);
   calcLandMasses();
-  ismask = GridData<int>(gr, 0);
   calcIsMask();
+  calcBBoxes();
   isles.clear();
   calcIslands();
 }
@@ -191,21 +193,18 @@ void IslaModel::setIsIsland(int cr, int cc, bool val)
 
 template<typename T>
 static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
-                      const GridData<bool> &mask, wxRect &bbox)
+                      const GridData<bool> &mask)
 {
+  int nc = res.grid()->nlon(), nr = res.grid()->nlat();
   typedef pair<int,int> Cell;
   stack<Cell> st;
-  int nc = res.grid()->nlon(), nr = res.grid()->nlat();
-  int minr = r0, maxr = r0, minc = c0, maxc = c0;
   st.push(Cell(r0, c0));
   while (!st.empty()) {
     Cell chk = st.top();
     st.pop();
-    int r = chk.first, c =chk.second;
-    if (mask(r, c) && res(r, c) == empty) {
-      res(r, c) = val;
-      minr = min(r, minr);  maxr = max(r, maxr);
-      minc = min(c, minc);  maxc = max(c, maxc);
+    int r = chk.first, c = chk.second;
+    if (mask(r, c % nc) && res(r, c % nc) == empty) {
+      res(r, c % nc) = val;
       int cp1 = (c + 1) % nc, cm1 = (c - 1 + nc) % nc;
       st.push(Cell(r, cp1));
       st.push(Cell(r, cm1));
@@ -221,28 +220,28 @@ static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
       }
     }
   }
-  bbox = wxRect(minc, minr,
-                maxc-minc+1 + (maxc-minc+1 == nc ? 0 : 1), maxr-minr+2);
 }
+
+
+// Determine landmasses and classify as island/not-island based on
+// area threshold.
 
 void IslaModel::calcLandMasses(void)
 {
   // Determine initial land mass extents by flood fill.
   landmass = -1;
   int nlon = gr->nlon(), nlat = gr->nlat();
-  int region = 1;
+  nlandmass = 0;
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c) {
       if (landmass(r, c) >= 0) continue;
       if (!mask(r, c)) { landmass(r, c) = 0; continue; }
-      wxRect bbox;
-      floodFill(landmass, r, c, region++, -1, mask, bbox);
-      lmbbox[landmass(r, c)] = bbox;
+      floodFill(landmass, r, c, ++nlandmass, -1, mask);
     }
 
   // Calculate land mass areas.
   lmsizes.clear();
-  lmsizes.resize(region, 0.0);
+  lmsizes.resize(nlandmass+1, 0.0);
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c)
       if (landmass(r, c) >= 0) lmsizes[landmass(r, c)] += gr->cellArea(r, c);
@@ -250,7 +249,7 @@ void IslaModel::calcLandMasses(void)
   // Filter for islands based on size threshold.
   set<LMass> island_regions;
   double island_threshold = IslaPreferences::get()->getIslandThreshold();
-  for (int i = 1; i < region; ++i)
+  for (int i = 1; i < nlandmass; ++i)
     if (lmsizes[i] <= island_threshold) island_regions.insert(i);
 
   // Mark island regions.
@@ -262,7 +261,8 @@ void IslaModel::calcLandMasses(void)
 }
 
 
-// Calculate ISMASK field for island boundary calculations.
+// Calculate ISMASK field for island boundary calculations.  Also
+// extends landmass values into all cells with ISMASK != 0.
 
 void IslaModel::calcIsMask(void)
 {
@@ -289,6 +289,62 @@ void IslaModel::calcIsMask(void)
       }
       }
     }
+}
+
+
+// Calculate bounding boxes for landmasses.
+
+void IslaModel::calcBBoxes(void)
+{
+  int nc = gr->nlon(), nr = gr->nlat();
+  lmbbox.clear();
+  for (LMass lm = 1; lm <= nlandmass; ++lm) {
+    bool found = false;
+    int c;
+    for (c = 2; c <= nc + 1; ++c) {
+      for (int r = 0; r < nr; ++r)
+        if (landmass(r, c % nc) == lm) { found = true; break; }
+      if (found) break;
+    }
+    if (!found) throw logic_error("can't find landmass that should be there!");
+    int minc = c, maxc = c, minr = nr - 1, maxr = 0;
+    for (; maxc <= nc + 1; ++maxc) {
+      bool found = false;
+      for (int r = 0; r < nr; ++r) {
+        if (landmass(r, maxc % nc) == lm) {
+          found = true;  minr = min(minr, r);  maxr = max(maxr, r);
+        }
+      }
+      if (!found) { --maxc;  break; }
+    }
+    BBox bbox;
+    bbox.b1 = wxRect(minc, minr, minc != maxc && maxc % nc == minc ?
+                     nc : maxc-minc+1, maxr-minr+1);
+    if (minc == 2 && bbox.b1.width != nc) {
+      bool found = false;
+      int c;
+      for (c = nc + 1; c > 2; --c) {
+        for (int r = 0; r < nr; ++r)
+          if (landmass(r, c % nc) == lm) { found = true; break; }
+        if (found) break;
+      }
+      if (found) {
+        int minc = c, maxc = c, minr = nr - 1, maxr = 0;
+        for (; minc > 2; --minc) {
+          bool found = false;
+          for (int r = 0; r < nr; ++r) {
+            if (landmass(r, minc % nc) == lm) {
+              found = true;  minr = min(minr, r);  maxr = max(maxr, r);
+            }
+          }
+          if (!found) { ++minc;  break; }
+        }
+        bbox.both = true;
+        bbox.b2 = wxRect(minc, minr, maxc-minc+1, maxr-minr+1);
+      }
+    }
+    lmbbox[lm] = bbox;
+  }
 }
 
 

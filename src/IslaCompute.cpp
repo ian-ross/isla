@@ -15,11 +15,25 @@ using namespace std;
 
 // Calculate island segments for given landmass.
 
+void dumpSeg(const IslaCompute::Seg &seg)
+{
+  for (IslaCompute::Seg::const_iterator it = seg.begin();
+       it != seg.end(); ++it) {
+    IslaCompute::BoxID id = it->first;
+    const IslaCompute::Box &b = it->second.b;
+    cout << "ID " << id
+         << ": x=" << b.x << " y=" << b.y
+         << " w=" << b.width << " h=" << b.height << endl;
+  }
+}
+
 void IslaCompute::segment(LMass lm, Boxes &bs)
 {
   Seg byrows, bycols;
   boundRows(lm, byrows);
+  //  cout << "byRows:" << endl; dumpSeg(byrows);
   boundCols(lm, bycols);
+  //  cout << "byCols:" << endl; dumpSeg(bycols);
   bool dorows = true, docols = true;
   if (byrows.size() > 5 * bycols.size()) dorows = false;
   if (bycols.size() > 5 * byrows.size()) docols = false;
@@ -209,69 +223,73 @@ IslaCompute::Box IslaCompute::boundBox(LMass lm)
 
 void IslaCompute::boundRows(LMass lm, Seg &rs)
 {
-  Box bbox = lmbbox.find(lm)->second;
+  IslaModel::BBox bbox = lmbbox.find(lm)->second;
   rs.clear();
   int segid = 0;
   set<int> last, cur;
-  for (int y = 0; y < bbox.height; ++y) {
-    vector<int> xs;
-    for (int x = 0; x < bbox.width; ++x)
-      if (glm(bbox.y + y, bbox.x + x) == lm)
-        xs.push_back(bbox.x + x);
-    vector< pair<int,int> > xruns;
-    runs(xs, xruns);
-    cur.clear();
-    for (int i = 0; i < xruns.size(); ++i) {
-      BoxInfo box;
-      box.b = Box(xruns[i].first, bbox.y + y,
-                  xruns[i].second - xruns[i].first + 1, 1);
-      box.score = -1;
-      if (i > 0) box.cands.insert(segid - 1);
-      if (i < xruns.size() - 1) box.cands.insert(segid + 1);
-      cur.insert(segid);
-      rs[segid++] = box;
-    }
-    for (set<int>::iterator it = cur.begin(); it != cur.end(); ++it) {
-      for (set<int>::iterator jt = last.begin(); jt != last.end(); ++jt) {
-        rs[*it].cands.insert(*jt);
-        rs[*jt].cands.insert(*it);
+  for (int ib = 0; ib < (bbox.both ? 2 : 1); ++ib) {
+    wxRect &box = ib == 0 ? bbox.b1 : bbox.b2;
+    for (int y = 0; y < box.height; ++y) {
+      vector<int> xs;
+      for (int x = 0; x < box.width; ++x)
+        if (glm(box.y + y, box.x + x) == lm)
+          xs.push_back(box.x + x);
+      vector< pair<int,int> > xruns;
+      runs(xs, xruns);
+      cur.clear();
+      for (int i = 0; i < xruns.size(); ++i) {
+        BoxInfo info;
+        info.b = Box(xruns[i].first, box.y + y,
+                     xruns[i].second - xruns[i].first + 1, 1);
+        if (i > 0) info.cands.insert(segid - 1);
+        if (i < xruns.size() - 1) info.cands.insert(segid + 1);
+        cur.insert(segid);
+        rs[segid++] = info;
       }
+      for (set<int>::iterator it = cur.begin(); it != cur.end(); ++it) {
+        for (set<int>::iterator jt = last.begin(); jt != last.end(); ++jt) {
+          rs[*it].cands.insert(*jt);
+          rs[*jt].cands.insert(*it);
+        }
+      }
+      last = cur;
     }
-    last = cur;
   }
 }
 
 void IslaCompute::boundCols(LMass lm, Seg &cs)
 {
-  Box bbox = boundBox(lm);
+  IslaModel::BBox bbox = lmbbox.find(lm)->second;
   cs.clear();
   int segid = 0;
   set<int> last, cur;
-  for (int x = 0; x < bbox.width; ++x) {
-    vector<int> ys;
-    for (int y = 0; y < bbox.height; ++y)
-      if (glm(bbox.y + y, bbox.x + x) == lm)
-        ys.push_back(bbox.y + y);
-    vector< pair<int,int> > yruns;
-    runs(ys, yruns);
-    cur.clear();
-    for (int i = 0; i < yruns.size(); ++i) {
-      BoxInfo box;
-      box.b = Box(bbox.x + x, yruns[i].first,
-                  1, yruns[i].second - yruns[i].first + 1);
-      box.score = -1;
-      if (i > 0) box.cands.insert(segid - 1);
-      if (i < yruns.size() - 1) box.cands.insert(segid + 1);
-      cur.insert(segid);
-      cs[segid++] = box;
-    }
-    for (set<int>::iterator it = cur.begin(); it != cur.end(); ++it) {
-      for (set<int>::iterator jt = last.begin(); jt != last.end(); ++jt) {
-        cs[*it].cands.insert(*jt);
-        cs[*jt].cands.insert(*it);
+  for (int ib = 0; ib < (bbox.both ? 2 : 1); ++ib) {
+    wxRect &box = ib == 0 ? bbox.b1 : bbox.b2;
+    for (int x = 0; x < box.width; ++x) {
+      vector<int> ys;
+      for (int y = 0; y < box.height; ++y)
+        if (glm(box.y + y, box.x + x) == lm)
+          ys.push_back(box.y + y);
+      vector< pair<int,int> > yruns;
+      runs(ys, yruns);
+      cur.clear();
+      for (int i = 0; i < yruns.size(); ++i) {
+        BoxInfo info;
+        info.b = Box(box.x + x, yruns[i].first,
+                     1, yruns[i].second - yruns[i].first + 1);
+        if (i > 0) info.cands.insert(segid - 1);
+        if (i < yruns.size() - 1) info.cands.insert(segid + 1);
+        cur.insert(segid);
+        cs[segid++] = info;
       }
+      for (set<int>::iterator it = cur.begin(); it != cur.end(); ++it) {
+        for (set<int>::iterator jt = last.begin(); jt != last.end(); ++jt) {
+          cs[*it].cands.insert(*jt);
+          cs[*jt].cands.insert(*it);
+        }
+      }
+      last = cur;
     }
-    last = cur;
   }
 }
 

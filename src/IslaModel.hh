@@ -25,6 +25,14 @@ class IslaModel {
 public:
   enum GridType { HadCM3L, HadCM3, HadGEM2 };
 
+  // Bounding box type -- can't just use a simple rectangle because
+  // islands can extend across prime meridian.
+  struct BBox {
+    BBox() : both(false) { }
+    bool both;
+    wxRect b1, b2;
+  };
+
   // Structures used for recording island information.
   typedef std::multimap<int, std::pair<int, int> > CoincInfo;
   struct IslandInfo {
@@ -83,11 +91,12 @@ public:
   // Individual recalculation methods.
   void calcLandMasses(void);    // Index land masses.
   void calcIsMask(void);        // Calculate ISMASK.
+  void calcBBoxes(void);        // Calculate landmass bounding boxes.
   void calcIsland(LMass lm);    // Analyse single island.
   void calcIslands(void);       // Determine islands from scratch.
 
   // Return landmass bounding box map.
-  const std::map<LMass,wxRect> landMassBBox(void) const { return lmbbox; }
+  const std::map<LMass,BBox> landMassBBox(void) const { return lmbbox; }
 
   // Export current island data.
   void saveIslands(wxString file);
@@ -107,7 +116,8 @@ private:
                                 // current mask.
 
   GridData<LMass> landmass;     // Land mass index for current mask.
-  std::map<LMass, wxRect> lmbbox;
+  int nlandmass;                // Number of landmasses.
+  std::map<LMass, BBox> lmbbox;
   std::vector<double> lmsizes;  // Land mass sizes.
   GridData<bool> is_island;     // Are land points part of an island?
   GridData<int> ismask;         // UM ISMASK for current mask.

@@ -22,6 +22,7 @@ public:
   typedef int Score;
   typedef int BoxID;
   struct BoxInfo {
+    BoxInfo() : score(-1) { }
     Box b;                      // Box.
     std::set<BoxID> cands;      // IDs of merge candidates.
     Score score;                // Cached score for this box.
@@ -36,7 +37,7 @@ public:
   };
 
   IslaCompute(const GridData<LMass> &glmin,
-              const std::map<LMass, Box> &lmbboxin,
+              const std::map<LMass, IslaModel::BBox> &lmbboxin,
               const GridData<int> &ismaskin) :
     glm(glmin), lmbbox(lmbboxin), ismask(ismaskin) { }
 
@@ -83,7 +84,7 @@ private:
   static void extractBoxes(const Seg &ss, Boxes &bs);
 
   const GridData<LMass> &glm;
-  const std::map<LMass, wxRect> &lmbbox;
+  const std::map<LMass, IslaModel::BBox> &lmbbox;
   const GridData<int> &ismask;
   std::map<BoxID, std::set<BoxID> > known_bad;
   std::map<BoxID, std::map<BoxID, Score> > known_good;
