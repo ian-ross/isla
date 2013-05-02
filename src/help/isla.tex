@@ -1,0 +1,364 @@
+\documentclass[11pt,makeidx,texhelp]{report}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fourier}
+
+\parskip=10pt
+\parindent=0pt
+
+\title{Isla v0.2: the UM island file editor}
+\author{Ian~Ross}
+\date{May~2013}
+
+\makeindex
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+%======================================================================
+\chapter*{Copyright notice}
+
+Copyright (c) 2013 Ian Ross.
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose is hereby granted without fee, provided that the
+above copyright notice, author statement and this permission notice appear in
+all copies of this software and related documentation.
+
+THE SOFTWARE IS PROVIDED ``AS-IS'' AND WITHOUT WARRANTY OF ANY KIND, EXPRESS,
+IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF
+MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+IN NO EVENT SHALL IAN ROSS BE LIABLE FOR ANY SPECIAL, INCIDENTAL,
+INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND, OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER OR NOT
+ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF LIABILITY,
+ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+SOFTWARE.
+
+%======================================================================
+\chapter{Introduction}
+
+Isla is a wxWidgets GUI application for generating Met Office UM
+island data (used for streamfunction line integral calculations in the
+barotropic solver of the ocean model) from land/sea masks.  The basic
+workflow for using Isla is as follows:
+\begin{enumerate}
+  \item{The user generates a NetCDF file containing the land/sea mask
+    of interest.}
+  \item{The user starts Isla and loads the NetCDF land/sea mask.}
+  \item{From the land/sea mask, Isla:
+    \begin{itemize}
+      \item{determines land masses;}
+      \item{classifies the land masses as island or not island
+        depending on area;}
+      \item{calculates valid segmentations for each island following
+        the requirements of the Met Office UM ocean model.}
+    \end{itemize}}
+  \item{The user can then:
+    \begin{itemize}
+      \item{review the island segmentations;}
+      \item{optionally specify that selected land masses are or are
+        not islands, independent of the area threshold used by Isla;}
+      \item{refine or coarsen the island segmentations calculated by
+        Isla for efficiency.}
+    \end{itemize}}
+  \item{The user can also load island data from a UM ocean dump file
+    or from an ASCII file (in the format used by \texttt{mkancil}) for
+    comparison with the island segmentation calculated by Isla.}
+  \item{Once satisfied with the island segmentation, the user can
+    export the segmentation to an ASCII file for processing with
+    \texttt{mkancil}.}
+\end{enumerate}
+
+
+%======================================================================
+\chapter{Map View and Navigation}
+
+\section{Map view}
+
+The main window view in Isla displays a map showing the land/sea mask,
+island segment outlines (both those calculated from the land/sea mask
+and optionally island segments loaded from a dump file or ASCII island
+file for comparison).  Map boundaries show latitude and longitude
+values (bottom and right) and model tracer grid cell coordinate values
+(top and left).
+
+At large scales, no grid lines are displayed to avoid clutter; zooming
+in far enough causes grid lines to be displayed between grid cells.
+
+Once a land/sea mask is loaded, landmasses are displayed using the
+colours defined in the preferences dialogue.  By default, ocean grid
+cells are white, island land cells are black and non-island land cells
+are grey.
+
+If the ``Show islands'' option in the \textbf{View} menu is selected
+(on by default), then island segments calculated by Isla are displayed
+(by default, as orange lines).  Adjacent segments from the same island
+are ``stitched together'' with hatching to distinguish them from
+segments belonging to different islands.
+
+If the ``Show comparison'' option in the \textbf{View} menu is
+selected (on by default), then if island comparison data is loaded,
+the comparison island segments are displayed (by default, as dashed
+blue lines).  As for the calculated island segments, adjacent segments
+from the same island are ``stitched together'' with hatching to
+distinguish them from segments belonging to different islands.
+
+
+\section{Navigation}
+
+The map view can be scrolled by a number of mechanisms:
+\begin{itemize}
+  \item{Dragging or mousewheeling on the horizontal axes pans the map
+    in a zonal direction, dragging or mousewheeling on the vertical
+    axes pans the map in a meridional direction;}
+  \item{Mousewheeling in the main area of the map pans the map in a
+    meridional direction;}
+  \item{The arrow keys move the map in the relevant direction, one
+    grid cell at a time;}
+  \item{If the ``pan'' tool is selected (the four-pointed arrow icon,
+    also available as ``Pan'' from the \textbf{View} menu or by
+    pressing the \textit{P} key), then dragging anywhere in the map
+    window pans the view.}
+\end{itemize}
+
+In all cases, scrolling in longitude is periodic.
+
+The map view resizes to fit the application window, and the view scale
+can be controlled using the zoom tools:
+\begin{itemize}
+  \item{Zoom in (toolbar: magnifying glass with plus sign, ``Zoom in''
+    in the \textbf{View} menu, or the \textit{+} key);}
+  \item{Zoom out (toolbar: magnifying glass with minus sign, ``Zoom
+    out'' in the \textbf{View} menu, or the \textit{-} key);}
+  \item{Zoom to fit, which rescales the map to fit the entire globe
+    into the window (toolbar: magnifying glass with black frame,
+    ``Zoom to fit'' in the \textbf{View} menu, or the \textit{F}
+    key);}
+  \item{Zoom to a selection, which allows the user to drag over a
+    region of the map to be zoomed (toolbar: magnifying glass with
+    blue frame, ``Zoom to selection'' in the \textbf{View} menu, the
+    \textit{Z} key).}
+\end{itemize}
+
+
+%======================================================================
+\chapter{Menu operations}
+
+\section{File menu}
+
+The \textbf{File} menu has the following operations:
+\begin{description}
+  \item[Clear grid (\textit{Ctrl-N})]{Clear all island and land/sea
+    mask information.}
+  \item[Load land/sea mask... (\textit{Ctrl-O})]{Loads a land/sea mask
+    from a NetCDF file; triggers determination of landmasses, island
+    thresholding and island segmentation calculations.}
+  \item[Save land/sea mask... (\textit{Ctrl-S})]{Writes the current
+    land/sea mask to a new NetCDF file.}
+  \item[Export island data... (\textit{Ctrl-E})]{Saves current island
+    segments to ASCII island file (suitable for use with recent
+    versions of \texttt{mkancil}).}
+  \item[Import island comparison data... (\textit{Ctrl-I})]{Loads
+    island data either from a UM dump file or from an ASCII island
+    file -- the island segments for the comparison data are displayed
+    in a style that distinguishes them from the island segments
+    calculated by Isla.}
+  \item[Clear island comparison data (\textit{Ctrl-C})]{Clears any
+    island comparison data that has been loaded.}
+  \item[Preferences]{Open preferences dialogue, where colours and
+    other options can be set (the only really relevant one at the
+    moment is the land surface area used as the threshold for deciding
+    whether a landmass defaults to being an island).}
+  \item[Quit (\textit{Ctrl-Q})]{Close the Isla program.}
+\end{description}
+
+\section{View menu}
+
+\begin{description}
+  \item[Zoom in (\textit{+})]{Zoom in by a fixed factor (up to a
+    maximum magnification level).}
+  \item[Zoom out (\textit{-})]{Zoom out by a fixed factor (to a fixed
+    minimum scale or until the whole map is visible).}
+  \item[Zoom to fit (\textit{F})]{Zoom to fit the whole map into the
+    window.}
+  \item[Zoom to selection (\textit{Z})]{Zoom to a region selected by
+    dragging a ``rubberband'' box on the map.}
+  \item[Pan (\textit{P})]{Switch pan tool on/off -- when the pan tool
+    is on, dragging anywhere in the map view pans the map.}
+  \item[Show islands (\textit{I})]{Toggle display of island
+    segmentation information calculated by Isla.}
+  \item[Show comparison (\textit{C})]{Toggle display of comparison
+    island segmentation information loaded from a dump or ASCII file.}
+\end{description}
+
+\section{Tools menu}
+
+The two items in this menu are really only of interest for testing
+Isla: by default, the ``Select'' tool is engaged.  The other option,
+``Edit land/sea mask'', is used for modifying land/sea masks to be
+saved to new NetCDF files for testing purposes.  Most normal uses of
+Isla should not need this tool.
+
+\section{Help menu}
+
+Documentation for Isla is accessed from the ``Contents'' item in the
+\textbf{Help} menu.  The ``About'' option displays version
+information.
+
+\section{Debug menu}
+
+Isla v0.2 also has a \textbf{Debug} menu that allows information used
+in the island segmentation computation to be displayed as overlays on
+the map view.  Of most interest is the ``ISMASK overlay'' option,
+which displays (on the model streamfunction grid) the \texttt{ISMASK}
+field used in the UM streamfunction line integral calculation
+(\texttt{ISMASK=0} corresponds to ocean points, \texttt{ISMASK=1} to
+landmass boundary points and \texttt{ISMASK=2} to landmass interior
+points).  Other options display land mass assignments and island
+determination.  These tools are probably only of interest to users
+helping to debug problems with Isla.
+
+
+%======================================================================
+\chapter{Isla Calculations}
+
+\section{File types}
+
+Isla uses three main file types: NetCDF land/sea masks, UM ocean model
+dump files and ASCII island files.
+
+\subsection{NetCDF land/sea masks}
+
+The initial step in any use of Isla is to load a land/sea mask from a
+NetCDF file.  These files should be defined to have two dimensions
+called either ``lat'' and ``lon'' or ``latitude'' and ``longitude''.
+The latitude and longitude dimensions should have coordinate
+variables, following CF metadata conventions, and the longitude
+dimension should have a number of points corresponding to the true
+number of longitude points in the model tracer grid.  Some care is
+required here, because \texttt{xconv}, for instance, writes NetCDF
+files that include the two ``ghost'' longitude points used by the UM
+ocean model to deal with zonal wraparound.  These ghost points should
+be cut off, using \texttt{ncks} or \texttt{cdo}, before attempting to
+load the land/sea mask into Isla.
+
+The actual mask variable in the input NetCDF file can have any name
+and be of any numeric or logical type -- non-zero values correspond to
+land points, zero values to ocean.
+
+\subsection{UM ocean dump files}
+
+Isla is able to read island data from UM ocean dump files for
+comparison with calculated island segments.  Only ocean dump files in
+64-bit IEEE format are supported (although endianness doesn't
+matter).  The ocean dump file grid must (obviously) match the grid on
+which the land/sea mask is defined.
+
+\subsection{ASCII island files}
+
+ASCII island files are supported both for the loading of comparison
+data and for export of island segmentation data for further processing
+by \texttt{mkancil}.
+
+The ASCII island file format is very simple.  Lines beginning with a
+hash (\texttt{\#}) character are comments.  All other lines should
+consist of integer values:
+\begin{itemize}
+  \item{The first integer in the file is the number of islandsm
+    \texttt{Ni}.}
+  \item{For each island, there is:
+    \begin{itemize}
+      \item{a segment count \texttt{Ns}, then}
+      \item{segment start and end grid cell indexes for each island
+        segment, in the order \texttt{IS(1)..IS(Ns)},
+        \texttt{IE(1)..IE(Ns)}, \texttt{JS(1)..JS(Ns)},
+        \texttt{JE(1)..JE(Ns)}, where the \texttt{I} variables are
+        column indexes, the \texttt{J} variables are row indexes, the
+        \texttt{S} variables are segment start indexes and the
+        \texttt{E} variables are segment end indexes.}
+    \end{itemize}}
+\end{itemize}
+
+\section{Isla processing}
+
+When a land/sea mask is loaded, Isla performs the following
+calculations:
+\begin{enumerate}
+  \item{Individual landmasses are identified using a ``flood fill''
+    algorithm.  The separation between landmasses is defined on the UM
+    ocean model streamfunction grid, which means that diagonally
+    adjacent cells are considered to belong to the same landmass.}
+  \item{Landmasses whose surface area is below a configurable
+    threshold are identified as islands (the default threshold is
+    8,000,000 sq. km, which is a bit more than the area of
+    Australia).}
+  \item{For each island landmass, a set of bounding segments
+    (rectangles) is calculated.  The details of the algorithm used are
+    a little complicated (look in \texttt{IslaCompute.cpp} if you're
+    interested), but the result is, as far as possible, a minimal set
+    of admissible segments for each island, minimal in the sense of
+    using the smallest possible number of segments, and admissible in
+    the sense that the union of the segments for an island contains
+    all points for that island with \texttt{ISMASK=1} or
+    \texttt{ISMASK=2} and no points for any other landmasses that have
+    \texttt{ISMASK=1} or \texttt{ISMASK=2}.}
+  \item{Polar islands are optimised by moving their outer boundaries
+    as far as possible towards the equator to remove lines of latitude
+    that are exclusively cells with \texttt{ISMASK=2} (which are not
+    required in the streamfunction line integral calculations in the
+    UM ocean model).}
+\end{enumerate}
+
+\section{User modification of island segmentation}
+
+Once the initial island segmentation calculation has been completed,
+the user can modify the results by right clicking on landmasses and
+selecting from the popup menu.  The options are:
+
+\begin{description}
+  \item[Landmass island toggle]{Toggle the selected land mass between
+    being considered as an island or not.  All land masses treated as
+    islands are segmented and their segments written into ASCII island
+    export files.  This functionality may be useful in a number of
+    different cases: some simulations treat the Americas as an
+    ``island'', but the land mass is too large to be considered an
+    island by default by Isla; some paleo applications may have large
+    isolated landmasses (Pangaea) that need to be treated as islands.}
+  \item[Coarsen island segmentation]{Attempt to merge segments for the
+    selected island to produce a segmentation with less segments, but
+    probably more redundant ocean points.}
+  \item[Refine island segmentation]{Attempt to split segments for the
+    selected island to produce a segmentation with more segments, but
+    probably less redundant ocean points.}
+  \item[Reset island segmentation]{Reruns the island segmentation for
+    the selected island with the default Isla settings.}
+\end{description}
+
+The idea of the ``coarsen''/``refine'' functions is that, for an
+isolated island far from any other landmasses, the simplest
+segmentation is a single segment -- the bounding box of the island.
+In some cases, this may end up being rather inefficient in the
+streamfunction line integral calculations in the UM ocean model.  For
+example, consider a long thin diagonally oriented island (like New
+Zealand).  Using a single rectangular segment to cover such an island
+will produce correct results in the streamfunction line integrals
+(since all the island boundary points are included in the
+segmentation), but will also include a large number of ocean points
+that do not participate in the line integral calculations but still
+have to be examined to check their \texttt{ISMASK} values.  Splitting
+the segmentation for such an island into two (or more) segments may be
+more efficient, simply because the segments can be shrunk to contain
+less ocean points.  There is a trade-off between needing to loop over
+more or less island segments and needing to consider less or more
+redundant ocean points.  The ``coarsen''/``refine'' functions allow a
+user to produce segmentations that lie anywhere along this axis, as
+required.
+
+\addcontentsline{toc}{chapter}{Index}
+
+\end{document}

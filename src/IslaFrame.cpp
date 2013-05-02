@@ -14,6 +14,8 @@ using namespace std;
 #include "wx/statline.h"
 #include "wx/clrpicker.h"
 #include "wx/wfstream.h"
+#include "wx/stdpaths.h"
+#include "wx/fs_arc.h"
 
 #include "IslaFrame.hh"
 #include "IslaModel.hh"
@@ -194,10 +196,15 @@ IslaFrame::IslaFrame() :
   SetStatusText(_("Welcome to Isla!"));
 
   // Help controller.
+  wxFileSystem::AddHandler(new wxArchiveFSHandler);
+  wxString exepath = wxStandardPaths::Get().GetExecutablePath();
+  wxFileName helpfile(wxPathOnly(exepath) + wxString(_("/../share/isla")),
+                      _("isla.htb"));
+  cout << "helpfile: " << helpfile.GetPath().ToAscii() << endl;
   helpCtrl = new wxHtmlHelpController();
   helpCtrl->UseConfig(wxConfigBase::Get());
-  if (!helpCtrl->AddBook(wxFileName(_("helpfiles/testing.hhp"), wxPATH_UNIX)))
-    wxMessageBox(_("Failed adding book helpfiles/testing.hhp"));
+  if (!helpCtrl->AddBook(helpfile, false))
+    wxMessageBox(_("Failed adding book share/isla/isla.htb"));
 
   // Model.
   model = new IslaModel();
