@@ -17,7 +17,7 @@ using namespace std;
 
 void IslaCompute::segment(LMass lm, int minsegs, Boxes &bs)
 {
-  Seg byrows, bycols;
+  Seg byrows, bycols, bycells;
   boundRows(lm, byrows);
   boundCols(lm, bycols);
   bool dorows = true, docols = true;
@@ -25,10 +25,18 @@ void IslaCompute::segment(LMass lm, int minsegs, Boxes &bs)
   if (bycols.size() > 5 * byrows.size()) docols = false;
   if (dorows) scoredSegmentation(lm, minsegs, byrows);
   if (docols) scoredSegmentation(lm, minsegs, bycols);
-  if (dorows && docols)
-    extractBoxes(byrows.size() <= bycols.size() ? byrows : bycols, bs);
-  else
-    extractBoxes(dorows ? byrows : bycols, bs);
+  Seg *extr = 0;
+  int minsize = glm.grid()->nlon() * glm.grid()->nlat();
+  if (dorows && (extr == 0 || byrows.size() < minsize)) {
+    extr = &byrows;
+    minsize = byrows.size();
+  }
+  if (docols && (extr == 0 || bycols.size() < minsize)) {
+    extr = &bycols;
+    minsize = bycols.size();
+  }
+  if (extr == 0) throw runtime_error("Segmentation failed!");
+  extractBoxes(*extr, bs);
   fixPolar(lm, bs);
 }
 
@@ -280,6 +288,7 @@ void IslaCompute::boundCols(LMass lm, Seg &cs)
     }
   }
 }
+
 
 
 // Determine whether points, boxes and sets of boxes are admissible
