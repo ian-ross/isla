@@ -10,6 +10,7 @@
 #define _H_ISLAFRAME_
 
 #include "wx/wx.h"
+#include "wx/wxhtml.h"
 
 #include "IslaModel.hh"
 #include "IslaCanvas.hh"
@@ -44,6 +45,7 @@ private:
   wxMenu *menuView;
   wxMenu *menuTools;
   wxToolBar *toolBar;
+  wxHtmlHelpController *helpCtrl;
 };
 
 #endif

@@ -65,6 +65,7 @@ BEGIN_EVENT_TABLE(IslaFrame, wxFrame)
   EVT_MENU  (ID_SELECT,             IslaFrame::OnMenu)
   EVT_MENU  (ID_EDIT_MASK,          IslaFrame::OnMenu)
 
+  EVT_MENU  (wxID_HELP_CONTENTS,    IslaFrame::OnMenu)
   EVT_MENU  (wxID_ABOUT,            IslaFrame::OnMenu)
   EVT_CLOSE (                       IslaFrame::OnClose)
 
@@ -127,7 +128,10 @@ IslaFrame::IslaFrame() :
                              _("Edit land/sea mask by "
                                "toggling state of cells"));
 
+  menuHelp->Append(wxID_HELP_CONTENTS, _("&Contents\tCtrl-H"),
+                   _("Show help contents"));
   menuHelp->Append(wxID_ABOUT, _("&About\tCtrl-A"), _("Show about dialogue"));
+
 
   wxMenuBar *menuBar = new wxMenuBar();
   menuBar->Append(menuFile, _("&File"));
@@ -188,6 +192,12 @@ IslaFrame::IslaFrame() :
 
   CreateStatusBar(2);
   SetStatusText(_("Welcome to Isla!"));
+
+  // Help controller.
+  helpCtrl = new wxHtmlHelpController();
+  helpCtrl->UseConfig(wxConfigBase::Get());
+  if (!helpCtrl->AddBook(wxFileName(_("helpfiles/testing.hhp"), wxPATH_UNIX)))
+    wxMessageBox(_("Failed adding book helpfiles/testing.hhp"));
 
   // Model.
   model = new IslaModel();
@@ -256,6 +266,7 @@ void IslaFrame::OnMenu(wxCommandEvent &e)
 {
   switch (e.GetId()) {
   case wxID_NEW: model->reset();  canvas->ModelReset(model);  break;
+  case wxID_HELP_CONTENTS: helpCtrl->Display(_("Test HELPFILE"));  break;
   case wxID_ABOUT: { IslaAboutDialogue d(this);  d.ShowModal();  break; }
   case ID_SELECT: canvas->SetSelect();  UpdateUI(); break;
   case ID_EDIT_MASK: canvas->SetEdit(); UpdateUI(); break;
