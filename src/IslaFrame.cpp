@@ -367,20 +367,21 @@ void IslaFrame::OnLoadMask(wxCommandEvent &WXUNUSED(e))
     } else
       maskvar = (const char *)(choices[0].To8BitData());
   } catch (std::exception &e) {
-    wxMessageDialog msg(this, _("Failed to open NetCDF file"),
+    wxString excmsg = wxString::FromAscii(e.what());
+    wxMessageDialog msg(this, _("Failed to open NetCDF file\n\n") + excmsg,
                         _("NetCDF error"), wxICON_ERROR);
     msg.ShowModal();
-    cout << "EXCEPTION: " << e.what() << endl;
   }
   if (maskvar != "") {
     try {
       model->loadMask(nc_file, maskvar);
       canvas->ModelReset(model);
     } catch (std::exception &e) {
-      wxMessageDialog msg(this, _("Failed to read mask data from NetCDF file"),
-                          _("NetCDF error"), wxICON_ERROR);
+      wxString excmsg = wxString::FromAscii(e.what());
+      wxMessageDialog msg(this,
+                          _("Failed to read mask data from NetCDF file\n\n") +
+                          excmsg, _("NetCDF error"), wxICON_ERROR);
       msg.ShowModal();
-      cout << "EXCEPTION: " << e.what() << endl;
     }
   }
   delete nc;
@@ -401,10 +402,10 @@ void IslaFrame::OnSaveMask(wxCommandEvent &WXUNUSED(e))
   try {
     model->saveMask(string(filedlg.GetPath().char_str()));
   } catch (std::exception &e) {
-    wxMessageDialog msg(this, _("Failed to write NetCDF file"),
+    wxString excmsg = wxString::FromAscii(e.what());
+    wxMessageDialog msg(this, _("Failed to write NetCDF file\n\n") + excmsg,
                         _("NetCDF error"), wxICON_ERROR);
     msg.ShowModal();
-    cout << "EXCEPTION: " << e.what() << endl;
   }
 }
 
@@ -422,10 +423,10 @@ void IslaFrame::OnExportIslands(wxCommandEvent &WXUNUSED(e))
   try {
     model->saveIslands(filedlg.GetPath());
   } catch (std::exception &e) {
-    wxMessageDialog msg(this, _("Failed to write island file"),
+    wxString excmsg = wxString::FromAscii(e.what());
+    wxMessageDialog msg(this, _("Failed to write island file\n\n") + excmsg,
                         _("I/O error"), wxICON_ERROR);
     msg.ShowModal();
-    cout << "EXCEPTION: " << e.what() << endl;
   }
 }
 
@@ -447,10 +448,10 @@ void IslaFrame::OnLoadComparison(wxCommandEvent &WXUNUSED(e))
   try {
     canvas->loadComparisonIslands(island_file);
   } catch (std::exception &e) {
-    wxMessageDialog msg(this, _("Failed to load island data"),
+    wxString excmsg = wxString::FromAscii(e.what());
+    wxMessageDialog msg(this, _("Failed to load island data\n\n") + excmsg,
                         _("File access error"), wxICON_ERROR);
     msg.ShowModal();
-    cout << "EXCEPTION: " << e.what() << endl;
   }
 }
 

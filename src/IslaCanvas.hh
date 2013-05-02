@@ -60,7 +60,7 @@ public:
 
   // Handle island comparison data.
   void loadComparisonIslands(wxString fname) {
-    IslaModel::loadIslands(fname, compisles);
+    model->loadIslands(fname, compisles);
     Refresh();
   }
   void clearComparisonIslands(void) {

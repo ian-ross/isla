@@ -437,7 +437,7 @@ static void swap_bytes(void *buf, int nbytes, int n)
   }
 }
 
-static void readIslandDataFromDump(wxFFile &fp,
+static void readIslandDataFromDump(int grid_nx, int grid_ny, wxFFile &fp,
                                    vector<IslaModel::IslandInfo> &isl)
 {
   // Check on the dump file type.  We only support 64-bit IEEE files,
@@ -455,13 +455,25 @@ static void readIslandDataFromDump(wxFFile &fp,
   if (ibuf[1] != 2)
     throw runtime_error("Dump file is not an ocean dump");
 
-  // Read the fixed header and find the offset for the island data.
+  // Read the fixed header and find the offset for the integer
+  // constants and island data.
   long fixhd[256];
   fp.Seek(0);
   fp.Read(fixhd, 256 * sizeof(long));
   if (swapped) swap_bytes(fixhd, sizeof(long), 256);
+  long int_consts_offset = fixhd[100-1];
+  long int_consts_length = fixhd[101-1];
   long extra_data_offset = fixhd[130-1];
   long extra_data_length = fixhd[131-1];
+
+  // Read the integer constants data and check the grid size.
+  long int_data[int_consts_length];
+  fp.Seek((int_consts_offset - 1) * sizeof(long));
+  fp.Read(int_data, int_consts_length * sizeof(long));
+  if (swapped) swap_bytes(int_data, sizeof(long), int_consts_length);
+  long dump_nx = int_data[6-1], dump_ny = int_data[7-1];
+  if (dump_nx != grid_nx + 2 || dump_ny != grid_ny)
+    throw runtime_error("Dump file grid does not match land/sea mask");
 
   // Read the extra constants data.
   double data[extra_data_length];
@@ -623,7 +635,7 @@ void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
   // file.
   vector<IslandInfo> isltmp;
   if (binary)
-    readIslandDataFromDump(fp, isltmp);
+    readIslandDataFromDump(gr->nlon(), gr->nlat(), fp, isltmp);
   else
     parseASCIIIslands(fname, isltmp);
 
