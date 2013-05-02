@@ -93,7 +93,7 @@ public:
   void calcLandMasses(void);    // Index land masses.
   void calcIsMask(void);        // Calculate ISMASK.
   void calcBBoxes(void);        // Calculate landmass bounding boxes.
-  void calcIsland(LMass lm);    // Analyse single island.
+  bool calcIsland(LMass lm);    // Analyse single island.
   void calcIslands(void);       // Determine islands from scratch.
 
   // Control island segmentation level of detail.

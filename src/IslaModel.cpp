@@ -353,7 +353,7 @@ void IslaModel::calcBBoxes(void)
 
 // Recalculate island information for a single landmass.
 
-void IslaModel::calcIsland(LMass lm)
+bool IslaModel::calcIsland(LMass lm)
 {
   IslaCompute compute(landmass, lmbbox, ismask);
   int startr, startc;
@@ -364,7 +364,7 @@ void IslaModel::calcIsland(LMass lm)
       if (landmass(startr, startc) == lm) { found = true;  break; }
     if (found) break;
   }
-  if (!is_island(startr, startc)) return;
+  if (!is_island(startr, startc)) return false;
 
   // Set up island info.
   IslandInfo is;
@@ -375,6 +375,7 @@ void IslaModel::calcIsland(LMass lm)
   compute.segment(lm, isles[lm].minsegs, is.segments);
   IslaCompute::coincidence(is.segments, is.vcoinc, is.hcoinc);
   isles[lm] = is;
+  return true;
 }
 
 
@@ -383,10 +384,9 @@ void IslaModel::calcIsland(LMass lm)
 void IslaModel::calcIslands(void)
 {
   // For each island landmass...
-  for (LMass lm = 1; lm < lmsizes.size(); ++lm) {
-    calcIsland(lm);
-    isles[lm].absminsegs = isles[lm].segments.size();
-  }
+  for (LMass lm = 1; lm < lmsizes.size(); ++lm)
+    if (calcIsland(lm))
+      isles[lm].absminsegs = isles[lm].segments.size();
 }
 
 
@@ -587,8 +587,8 @@ void IslaModel::saveIslands(wxString fname)
   fp.AddLine(wxString::Format(_("%d"), isles.size()));
   for (map<LMass, IslandInfo>::const_iterator it = isles.begin();
        it != isles.end(); ++it) {
-    fp.AddLine(_(""));
     const IslandInfo &is = it->second;
+    fp.AddLine(_(""));
     fp.AddLine(wxString(_("# ")) + wxString::FromAscii(is.name.c_str()));
     const vector<wxRect> &segs = is.segments;
     fp.AddLine(wxString::Format(_("%d"), segs.size()));
