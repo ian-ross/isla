@@ -200,7 +200,6 @@ IslaFrame::IslaFrame() :
   wxString exepath = wxStandardPaths::Get().GetExecutablePath();
   wxFileName helpfile(wxPathOnly(exepath) + wxString(_("/../share/isla")),
                       _("isla.htb"));
-  cout << "helpfile: " << helpfile.GetPath().ToAscii() << endl;
   helpCtrl = new wxHtmlHelpController();
   helpCtrl->UseConfig(wxConfigBase::Get());
   if (!helpCtrl->AddBook(helpfile, false))
