@@ -59,10 +59,7 @@ public:
   void SetFrame(IslaFrame *f) { frame = f; }
 
   // Handle island comparison data.
-  void loadComparisonIslands(wxString fname) {
-    model->loadIslands(fname, compisles);
-    Refresh();
-  }
+  void loadComparisonIslands(wxString fname);
   void clearComparisonIslands(void) {
     compisles.clear();
     Refresh();

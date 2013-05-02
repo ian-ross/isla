@@ -108,7 +108,7 @@ public:
   void saveIslands(wxString file);
 
   // Load comparison island data.
-  void loadIslands(wxString fname, std::vector<IslandInfo> &isles);
+  bool loadIslands(wxString fname, std::vector<IslandInfo> &isles);
 
 private:
   static GridPtr makeGrid(GridType g);

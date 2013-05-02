@@ -504,7 +504,7 @@ static void readIslandDataFromDump(int grid_nx, int grid_ny, wxFFile &fp,
   }
 }
 
-static void parseASCIIIslands(wxString fname,
+static bool parseASCIIIslands(int grid_nx, int grid_ny, wxString fname,
                               vector<IslaModel::IslandInfo> &isl)
 {
   // Read whole file contents.
@@ -519,6 +519,7 @@ static void parseASCIIIslands(wxString fname,
   int iisl = 0, istep, iseg, nseg;
   wxString islandname = _("");
   vector<int> isis, ieis, jsis, jeis;
+  bool bad = false;
   for (wxString line = fp.GetFirstLine(); !fp.Eof(); line = fp.GetNextLine()) {
     line = line.Trim();
     if (line.Len() == 0) continue;
@@ -552,10 +553,26 @@ static void parseASCIIIslands(wxString fname,
         }
         case READING_SEGS: {
           switch (istep) {
-          case 0: isis.push_back(val); break;
-          case 1: ieis.push_back(val); break;
-          case 2: jsis.push_back(val); break;
-          case 3: jeis.push_back(val); break;
+          case 0:
+            if (val < 2) { bad = true; val = 2; }
+            if (val > grid_nx + 1) { bad = true; val = grid_nx + 1; }
+            isis.push_back(val);
+            break;
+          case 1:
+            if (val < 2) { bad = true; val = 2; }
+            if (val > grid_nx + 1) { bad = true; val = grid_nx + 1; }
+            ieis.push_back(val);
+            break;
+          case 2:
+            if (val < 1) { bad = true; val = 1; }
+            if (val > grid_ny) { bad = true; val = grid_ny; }
+            jsis.push_back(val);
+            break;
+          case 3:
+            if (val < 1) { bad = true; val = 1; }
+            if (val > grid_ny) { bad = true; val = grid_ny; }
+            jeis.push_back(val);
+            break;
           }
           if (++iseg == nseg) {
             iseg = 0;
@@ -575,6 +592,7 @@ static void parseASCIIIslands(wxString fname,
       }
     }
   }
+  return !bad;
 }
 
 void IslaModel::saveIslands(wxString fname)
@@ -613,7 +631,7 @@ void IslaModel::saveIslands(wxString fname)
   fp.Write();
 }
 
-void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
+bool IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
 {
   // Check that the file exists.
   wxFFile fp(fname, _("rb"));
@@ -634,10 +652,11 @@ void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
   // suitable ocean dump file as we do so, or parse an ASCII islands
   // file.
   vector<IslandInfo> isltmp;
+  bool ok = true;
   if (binary)
     readIslandDataFromDump(gr->nlon(), gr->nlat(), fp, isltmp);
   else
-    parseASCIIIslands(fname, isltmp);
+    ok = parseASCIIIslands(gr->nlon(), gr->nlat(), fname, isltmp);
 
   // Compute coincidence line segments for island display.
   for (vector<IslandInfo>::iterator it = isltmp.begin();
@@ -657,5 +676,6 @@ void IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
 
   // Set up new island data.
   isles = isltmp;
+  return ok;
 }
 

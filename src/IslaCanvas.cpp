@@ -104,6 +104,23 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
 }
 
 
+// Load island comparison data.
+
+void IslaCanvas::loadComparisonIslands(wxString fname)
+{
+  bool ok = model->loadIslands(fname, compisles);
+  Refresh();
+  if (!ok) {
+    wxMessageDialog msg(frame,
+                        _("There may be a problem with the island data.\n"
+                          "Some grid cell coordinate values "
+                          "were out of range."),
+                        _("Potential island data problem"), wxICON_WARNING);
+    msg.ShowModal();
+  }
+}
+
+
 // Change of model.
 
 void IslaCanvas::ModelReset(IslaModel *m, bool refresh)
