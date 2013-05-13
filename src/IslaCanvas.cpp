@@ -454,6 +454,10 @@ void IslaCanvas::OnMouse(wxMouseEvent &event)
     ProcessPan(event, xpanevent, ypanevent);
   else if (zoom_selection) ProcessZoomSelection(event);
   else if (edit)           ProcessEdit(event);
+  if (x < bw || x > canw - bw || y < bw || y > canh - bw) return;
+  double lon = XToLon(x - bw), lat = YToLat(y - bw);
+  int col = lonToCol(lon) + 1, row = latToRow(lat) + 1;
+  frame->SetLocation(lon, lat, col, row);
 }
 
 void IslaCanvas::ProcessPan(wxMouseEvent &event, bool xpan, bool ypan)

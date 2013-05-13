@@ -21,6 +21,7 @@ public:
   virtual ~IslaFrame() { canvas->SetFrame(0); }
 
   void UpdateUI();
+  void SetLocation(double lon, double lat, int x, int y);
 
 private:
   DECLARE_EVENT_TABLE()

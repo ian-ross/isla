@@ -192,8 +192,20 @@ IslaFrame::IslaFrame() :
   menuView->Check(ID_SHOW_ISLANDS, true);
   menuView->Check(ID_SHOW_COMPARISON, true);
 
-  CreateStatusBar(2);
-  SetStatusText(_("Welcome to Isla!"));
+  // Create status bar: one field for menu help items, one field for
+  // grid cell display.
+  CreateStatusBar(6);
+  wxStatusBar *sb = GetStatusBar();
+  wxPaintDC sdc(sb);
+  wxCoord sbw, sbh;
+  int widths[6];  widths[0] = -1;
+  sdc.GetTextExtent(_(" LAT:88.8N "), &sbw, &sbh);   widths[1] = sbw;
+  sdc.GetTextExtent(_(" LON:888.8W "), &sbw, &sbh);  widths[2] = sbw;
+  sdc.GetTextExtent(_(" X:888 "), &sbw, &sbh);       widths[3] = sbw;
+  sdc.GetTextExtent(_(" Y:888 "), &sbw, &sbh);       widths[4] = sbw;
+  sdc.GetTextExtent(_("XXXX"), &sbw, &sbh);            widths[5] = sbw;
+  sb->SetStatusWidths(6, widths);
+  SetStatusText(_("Welcome to Isla!"), 0);
 
   // Help controller.
   wxFileSystem::AddHandler(new wxArchiveFSHandler);
@@ -264,6 +276,25 @@ void IslaFrame::UpdateUI()
   menuView->Check(ID_SHOW_ISLANDS, canvas->ShowIslands());
   menuView->Check(ID_SHOW_COMPARISON, canvas->ShowComparison());
 }
+
+// Show mouse cursor location in status bar.
+void IslaFrame::SetLocation(double lon, double lat, int x, int y)
+{
+  double tmplon = fmod(lon + 360.0, 360.0);
+  double slon = tmplon <= 180.0 ? tmplon : 360.0 - tmplon;
+  double slat = fabs(lat);
+  wxString latlab = lat >= 0 ? _("N") : _("S");
+  wxString lonlab = tmplon <= 180.0 ? _("E") : _("W");
+  wxString latstr, lonstr, xstr, ystr;
+  latstr.Printf(_("%2.1f"), slat);  lonstr.Printf(_("%3.1f"), slon);
+  xstr.Printf(_("%3d"), x);  ystr.Printf(_("%3d"), y);
+  wxString s1, s2, s3, s4;
+  s1 << _("LAT:") << latstr << latlab;  SetStatusText(s1, 1);
+  s2 << _("LON:") << lonstr << lonlab;  SetStatusText(s2, 2);
+  s3 << _("X:") << xstr;                SetStatusText(s3, 3);
+  s4 << _("Y:") << ystr;                SetStatusText(s4, 4);
+}
+
 
 // Event handlers -----------------------------------------------------------
 
