@@ -95,7 +95,7 @@ public:
     T operator()(F v) { return static_cast<T>(v); }
   };
   template<typename F>
-  static T convert(const std::vector<F> &in, std::vector<T> &out) {
+  static void convert(const std::vector<F> &in, std::vector<T> &out) {
     std::transform(in.begin(), in.end(), out.begin(), Convert<F>());
   }
 

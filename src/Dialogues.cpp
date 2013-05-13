@@ -153,6 +153,7 @@ IslaModel::GridType IslaPrefDialogue::grid(void) const
   case 0: return IslaModel::HadCM3L;
   case 1: return IslaModel::HadCM3;
   case 2: return IslaModel::HadGEM2;
+  default: return IslaModel::HadCM3L;
   }
 }
 

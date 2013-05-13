@@ -44,7 +44,7 @@ public:
   // Calculate island segments for given landmass.
   void segment(LMass lm, int minsegs, Boxes &bs);
   void scoredSegmentation(LMass lm, int minsegs, Seg &segs);
-  bool step(LMass lm, int minsegs, Seg &segs, BoxID segid);
+  bool step(LMass lm, unsigned int minsegs, Seg &segs, BoxID segid);
 
   // Compute coincidence line segments between adjacent island
   // segments (used for distinguishing spatially adjacent segments

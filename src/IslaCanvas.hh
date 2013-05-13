@@ -54,8 +54,8 @@ public:
     edit = true;
     SetCursor(wxCursor(wxCURSOR_PENCIL));
   }
-  bool SetShowIslands(bool show) { show_islands = show; }
-  bool SetShowComparison(bool show) { show_comparison = show; }
+  void SetShowIslands(bool show) { show_islands = show; }
+  void SetShowComparison(bool show) { show_comparison = show; }
   void SetFrame(IslaFrame *f) { frame = f; }
 
   // Handle island comparison data.

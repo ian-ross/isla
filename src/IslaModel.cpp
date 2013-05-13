@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include <stack>
+#include <limits>
 using namespace std;
 
 #include <wx/ffile.h>
@@ -232,11 +233,12 @@ void IslaModel::calcLandMasses(void)
   landmass = -1;
   int nlon = gr->nlon(), nlat = gr->nlat();
   nlandmass = 0;
+  LMass marker = numeric_limits<unsigned int>::max();
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c) {
       if (landmass(r, c) >= 0) continue;
       if (!mask(r, c)) { landmass(r, c) = 0; continue; }
-      floodFill(landmass, r, c, ++nlandmass, -1, mask);
+      floodFill(landmass, r, c, ++nlandmass, marker, mask);
     }
 
   // Calculate land mass areas.
@@ -252,7 +254,7 @@ void IslaModel::calcLandMasses(void)
   // Filter for islands based on size threshold.
   set<LMass> island_regions;
   double island_threshold = IslaPreferences::get()->getIslandThreshold();
-  for (int i = 1; i < nlandmass; ++i)
+  for (LMass i = 1; i < nlandmass; ++i)
     if (lmsizes[i] <= island_threshold) island_regions.insert(i);
 
   // Mark island regions.
@@ -395,7 +397,7 @@ void IslaModel::calcIslands(void)
 void IslaModel::coarsenIsland(int r, int c)
 {
   LMass lm = landmass(r, c);
-  int cursegs = isles[lm].segments.size();
+  unsigned int cursegs = isles[lm].segments.size();
   while (isles[lm].segments.size() == cursegs &&
          isles[lm].minsegs > isles[lm].absminsegs) {
     isles[lm].minsegs = max(isles[lm].minsegs - 1, isles[lm].absminsegs);
@@ -406,7 +408,7 @@ void IslaModel::coarsenIsland(int r, int c)
 void IslaModel::refineIsland(int r, int c)
 {
   LMass lm = landmass(r, c);
-  int cursegs = isles[lm].segments.size();
+  unsigned int cursegs = isles[lm].segments.size();
   while (isles[lm].segments.size() == cursegs &&
          isles[lm].minsegs < lmcounts[lm]) {
     isles[lm].minsegs = min(isles[lm].minsegs + 1, lmcounts[lm]);
@@ -483,9 +485,9 @@ static void readIslandDataFromDump(int grid_nx, int grid_ny, wxFFile &fp,
 
   // Set up island data.
   isl.resize(data[0]);
-  int iisl = 0, idata = 1;
+  int idata = 1;
   vector<int> isis, ieis, jsis, jeis;
-  for (int iisl = 0; iisl < isl.size(); ++iisl){
+  for (unsigned int iisl = 0; iisl < isl.size(); ++iisl){
     char tmp[32];
     sprintf(tmp, "Island %d", iisl + 1);
     isl[iisl].name = tmp;
@@ -612,7 +614,7 @@ void IslaModel::saveIslands(wxString fname)
     fp.AddLine(wxString::Format(_("%d"), segs.size()));
     bool firstseg = true;
     wxString isis, ieis, jsis, jeis;
-    for (int i = 0; i < segs.size(); ++i) {
+    for (unsigned int i = 0; i < segs.size(); ++i) {
       if (!firstseg) {
         isis += _(" "); ieis += _(" "); jsis += _(" "); jeis += _(" ");
       }
@@ -646,7 +648,8 @@ bool IslaModel::loadIslands(wxString fname, vector<IslandInfo> &isles)
   size_t nread = fp.Read(buff, 128);
   fp.Seek(0);
   bool binary = false;
-  for (int i = 0; i < nread; ++i) if (buff[i] & 0x80) { binary = true; break; }
+  for (size_t i = 0; i < nread; ++i)
+    if (buff[i] & 0x80) { binary = true; break; }
 
   // Read raw island data from dump file, checking that it's a
   // suitable ocean dump file as we do so, or parse an ASCII islands

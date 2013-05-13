@@ -44,13 +44,13 @@ END_EVENT_TABLE()
 IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
            wxFULL_REPAINT_ON_RESIZE),
+#ifdef ISLA_DEBUG
+  sizingOverlay(false), regionOverlay(false),
+  ismaskOverlay(false), isIslandOverlay(false),
+#endif
   frame(0),
   mouse(MOUSE_NOTHING), panning(false), zoom_selection(false), edit(false),
   show_islands(true), show_comparison(true)
-#ifdef ISLA_DEBUG
-  , sizingOverlay(false), regionOverlay(false)
-  , ismaskOverlay(false), isIslandOverlay(false)
-#endif
 {
   // Calculate border width and border text offset.
   wxPaintDC dc(this);
@@ -72,7 +72,6 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   mapw = nomw - 2 * bw;
   double tmpscale = mapw / 360.0;
   scale = -1;
-  double maplon = 360.0;
   double maplat = 180.0 + g->lat(1) - g->lat(0);
   maph = maplat * tmpscale;
   canw = mapw + 2 * bw;      canh = maph + 2 * bw;
@@ -131,11 +130,11 @@ void IslaCanvas::ModelReset(IslaModel *m, bool refresh)
   // Find minimum longitude and latitude step used in the model grid
   // (used for determining scales for enabling and disabling zoom
   // in/out).
-  for (int i = 0; i < g->nlon(); ++i) {
+  for (unsigned int i = 0; i < g->nlon(); ++i) {
     double dlon = fabs(fmod(g->lon((i+1)%g->nlon()) - g->lon(i), 360.0));
     minDlon = i == 0 ? dlon : min(minDlon, dlon);
   }
-  for (int i = 0; i < g->nlat()-1; ++i) {
+  for (unsigned int i = 0; i < g->nlat()-1; ++i) {
     double dlat = fabs(g->lat(i+1) - g->lat(i));
     minDlat = i == 0 ? dlat : min(minDlat, dlat);
   }
@@ -237,13 +236,13 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 
   // Draw island segments.
   if (show_islands && model->islands().size() > 0) {
-    const map<int, IslaModel::IslandInfo> &isles = model->islands();
+    const map<LMass, IslaModel::IslandInfo> &isles = model->islands();
     wxPen p(IslaPreferences::get()->getIslandOutlineColour(), 3);
     wxBrush vb(IslaPreferences::get()->getIslandOutlineColour(),
                wxHORIZONTAL_HATCH);
     wxBrush hb(IslaPreferences::get()->getIslandOutlineColour(),
                wxVERTICAL_HATCH);
-    for (map<int, IslaModel::IslandInfo>::const_iterator it =
+    for (map<LMass, IslaModel::IslandInfo>::const_iterator it =
            isles.begin(); it != isles.end(); ++it)
       drawIsland(dc, p, vb, hb, it->second);
   }
@@ -386,7 +385,7 @@ void IslaCanvas::drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
     int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
     int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
     int yb = min(latToY(g->lat(max(0, jt->y-1))), canh);
-    int yt = jt->y-1 + jt->height >= g->nlat() ?
+    int yt = jt->y-1 + jt->height >= nlat ?
       0 : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
     if (xl < xr)
       dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
@@ -403,7 +402,7 @@ void IslaCanvas::drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
        vit != vhatch.end(); ++vit) {
     int x = lonToX(g->lon((vit->first-1 + nlon) % nlon));
     int yb = min(latToY(g->lat(vit->second.first-1)), canh);
-    int yt = vit->second.second >= g->nlat() ?
+    int yt = vit->second.second >= nlat ?
       0 : latToY(g->lat(vit->second.second-1));
     int xl = x - dx / 2, xr = x + dx / 2;
     if (xl < xr)
@@ -479,6 +478,7 @@ void IslaCanvas::ProcessPan(wxMouseEvent &event, bool xpan, bool ypan)
     case MOUSE_PAN_X:  Pan(x - mousex, 0);          break;
     case MOUSE_PAN_Y:  Pan(0, y - mousey);          break;
     case MOUSE_PAN_2D: Pan(x - mousex, y - mousey); break;
+    default: break;
     }
   }
   mousex = x;  mousey = y;
@@ -620,7 +620,7 @@ void IslaCanvas::SetupAxes(bool dox, bool doy)
     int mindpos, maxtw;
     for (int i = 0; i < nlon; ++i) {
       int dpos = fabs(poss[(i+1)%nlon] - poss[i]);
-      if (i == 0 || dpos > 0 && dpos < mindpos) mindpos = dpos;
+      if (i == 0 || (dpos > 0 && dpos < mindpos)) mindpos = dpos;
       if (i == 0 || tws[i] > maxtw) maxtw = tws[i];
     }
     int skip = 2;
@@ -654,7 +654,7 @@ void IslaCanvas::SetupAxes(bool dox, bool doy)
     for (int i = 0; i < nlat; ++i) {
       int dpos = i < nlat-1 ?
                      fabs(poss[i+1] - poss[i]) : fabs(poss[i] - poss[i-1]);
-      if (i == 0 || dpos > 0 && dpos < mindpos) mindpos = dpos;
+      if (i == 0 || (dpos > 0 && dpos < mindpos)) mindpos = dpos;
       if (i == 0 || tws[i] > maxtw) maxtw = tws[i];
     }
     int skip = 2;
@@ -681,7 +681,7 @@ void IslaCanvas::axisLabels(wxDC &dc, bool horiz, int yOrX,
                             const vector<wxString> &labs)
 {
   wxCoord tw, th;
-  for (int i = 0; i < xOrYs.size(); ++i) {
+  for (unsigned int i = 0; i < xOrYs.size(); ++i) {
     dc.GetTextExtent(labs[i], &tw, &th);
     if (horiz) {
       dc.DrawText(labs[i], xOrYs[i] - tw / 2, yOrX);
@@ -706,7 +706,7 @@ int IslaCanvas::lonToCol(double lon)
 }
 int IslaCanvas::latToRow(double lat)
 {
-  for (int i = 0; i < iclats.size() - 1; ++i)
+  for (unsigned int i = 0; i < iclats.size() - 1; ++i)
     if (iclats[i] <= lat && lat < iclats[i + 1]) return i;
   return -1;
 }
@@ -717,7 +717,6 @@ int IslaCanvas::latToRow(double lat)
 void IslaCanvas::Pan(int dx, int dy)
 {
   GridPtr g = model->grid();
-  double maplat = maph / scale;
   double halfh = maph / 2 / scale;
   double clatb = clat;
   clon = fmod(360.0 + clon - dx / scale, 360.0);
@@ -825,7 +824,6 @@ void IslaCanvas::SizeRecalc(void)
   }
   xoff = (canw - mapw) / 2;
   GridPtr g = model->grid();
-  double maphb = maph;
   maph = min((180.0 + g->lat(1) - g->lat(0)) * scale, canh - bw * 2.0);
   yoff = (canh - maph) / 2;
   double halfh = maph / 2 / scale;

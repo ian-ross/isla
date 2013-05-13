@@ -13,9 +13,9 @@ public:
   Grid(std::vector<double> inlat, int nlon, double lon0, double dlon);
   Grid(const Grid &other) : lt(other.lt), ln(other.ln) { }
 
-  int nlat(void) const { return lt.size(); }
-  int nlon(void) const { return ln.size(); }
-  double cellArea(int r, int c);
+  unsigned int nlat(void) const { return lt.size(); }
+  unsigned int nlon(void) const { return ln.size(); }
+  double cellArea(unsigned int r, unsigned int c);
   bool lats_reversed(void) const { return lt_rev; }
   bool lons_reversed(void) const { return ln_rev; }
   const std::vector<double> lats(void) const { return lt; }

@@ -26,7 +26,7 @@ void IslaCompute::segment(LMass lm, int minsegs, Boxes &bs)
   if (dorows) scoredSegmentation(lm, minsegs, byrows);
   if (docols) scoredSegmentation(lm, minsegs, bycols);
   Seg *extr = 0;
-  int minsize = glm.grid()->nlon() * glm.grid()->nlat();
+  unsigned int minsize = glm.grid()->nlon() * glm.grid()->nlat();
   if (dorows && (extr == 0 || byrows.size() < minsize)) {
     extr = &byrows;
     minsize = byrows.size();
@@ -49,11 +49,9 @@ void IslaCompute::scoredSegmentation(LMass lm, int minsegs, Seg &segs)
   while (step(lm, minsegs, segs, segid)) ++segid;
 }
 
-bool IslaCompute::step(LMass lm, int minsegs, Seg &segs, BoxID segid)
+bool IslaCompute::step(LMass lm, unsigned int minsegs, Seg &segs, BoxID segid)
 {
   // Determine acceptable merges from candidates for each box.
-  double sc = static_cast<double>(score(lm, segs));
-  double sz = static_cast<double>(segs.size());
   if (segs.size() <= minsegs) return false;
   vector<Merge> ok;
   for (Seg::iterator it = segs.begin(); it != segs.end(); ++it) {
@@ -134,14 +132,14 @@ void IslaCompute::coincidence
     for (Boxes::const_iterator i2 = i1 + 1; i2 != bs.end(); ++i2) {
       int l2 = i2->x, b2 = i2->y, r2 = l2 + i2->width, t2 = b2 + i2->height;
       if (((r1 - l2 + 360) % 360 == 0 || (l1 - r2 + 360) % 360 == 0) &&
-          (b1 >= b2 && b1 <= t2 || t1 >= b2 && t1 <= t2 ||
-           b2 >= b1 && b2 <= t1 || t2 >= b1 && t2 <= t1)) {
+          ((b1 >= b2 && b1 <= t2) || (t1 >= b2 && t1 <= t2) ||
+           (b2 >= b1 && b2 <= t1) || (t2 >= b1 && t2 <= t1))) {
         pair<int, int> bnds = make_pair(max(b1,b2), min(t1,t2));
         v.insert(make_pair((r1 - l2 + 360) % 360 == 0 ? r1 : l1, bnds));
       }
       if ((t1 == b2 || b1 == t2) &&
-          (l1 >= l2 && l1 <= r2 || r1 >= l2 && r1 <= r2 ||
-           l2 >= l1 && l2 <= r1 || r2 >= l1 && r2 <= r1)) {
+          ((l1 >= l2 && l1 <= r2) || (r1 >= l2 && r1 <= r2) ||
+           (l2 >= l1 && l2 <= r1) || (r2 >= l1 && r2 <= r1))) {
         pair<int, int> bnds = make_pair(max(l1,l2), min(r1,r2));
         h.insert(make_pair(t1 == b2 ? t1 : b1, bnds));
       }
@@ -233,7 +231,7 @@ void IslaCompute::boundRows(LMass lm, Seg &rs)
       vector< pair<int,int> > xruns;
       runs(xs, xruns);
       cur.clear();
-      for (int i = 0; i < xruns.size(); ++i) {
+      for (unsigned int i = 0; i < xruns.size(); ++i) {
         BoxInfo info;
         info.b = Box(xruns[i].first, box.y + y,
                      xruns[i].second - xruns[i].first + 1, 1);
@@ -269,7 +267,7 @@ void IslaCompute::boundCols(LMass lm, Seg &cs)
       vector< pair<int,int> > yruns;
       runs(ys, yruns);
       cur.clear();
-      for (int i = 0; i < yruns.size(); ++i) {
+      for (unsigned int i = 0; i < yruns.size(); ++i) {
         BoxInfo info;
         info.b = Box(box.x + x, yruns[i].first,
                      1, yruns[i].second - yruns[i].first + 1);
@@ -311,7 +309,7 @@ bool IslaCompute::admissible(LMass lm, const Box &b) const
 bool IslaCompute::admissible(LMass lm, const Boxes &bs) const
 {
   bool ret = true;
-  for (int i = 0; i < bs.size(); ++i)
+  for (unsigned int i = 0; i < bs.size(); ++i)
     if (!admissible(lm, bs[i])) { ret = false;  break; }
   return ret;
 }
@@ -325,8 +323,8 @@ int IslaCompute::score(LMass lm, Seg &ss,
 {
   int ret = 0;
   for (Seg::iterator it = ss.begin(); it != ss.end(); ++it) {
-    if (exc1 > 0 && it->first == exc1 ||
-        exc2 > 0 && it->first == exc2) continue;
+    if ((exc1 > 0 && it->first == exc1) ||
+        (exc2 > 0 && it->first == exc2)) continue;
     if (it->second.score >= 0)
       ret += it->second.score;
     else {
@@ -367,7 +365,7 @@ void IslaCompute::runs(const vector<int> &vs, vector< pair<int,int> > &vruns)
   vruns.clear();
   if (vs.size() == 0) return;
   int start = vs[0], cur = vs[0];
-  for (int i = 1; i < vs.size(); ++i) {
+  for (unsigned int i = 1; i < vs.size(); ++i) {
     if (vs[i] == cur + 1)
       cur = vs[i];
     else {

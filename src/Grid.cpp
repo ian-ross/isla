@@ -69,9 +69,9 @@ Grid::Grid(vector<double> lats, int nlon, double lon0, double dlon) :
 // Radius of Earth in km.
 const double REARTH = 6370.0;
 
-double Grid::cellArea(int r, int c)
+double Grid::cellArea(unsigned int r, unsigned int c)
 {
-  double lat = lt[r], lon = ln[c];
+  double lat = lt[r];
   double dlon = ln[1] - ln[0], dlat;
   if (r == 0)
     dlat = (lt[1] - lt[0]) / 2 + (lt[0] - (-90.0));

@@ -19,7 +19,7 @@
 // Here, "mask" means a boolean land/sea mask (with true for land,
 // false for ocean).
 
-typedef int LMass;
+typedef unsigned int LMass;
 
 class IslaModel {
 public:
@@ -68,7 +68,7 @@ public:
   bool isIsland(int r, int c) { return is_island(r, c); }
   LMass landMass(int r, int c) { return landmass(r, c); }
   int isMask(int r, int c) { return ismask(r, c); }
-  const std::map<int, IslandInfo> islands(void) const { return isles; }
+  const std::map<LMass, IslandInfo> islands(void) const { return isles; }
 
   // Change data values.
   void setMask(int r, int c, bool val) {
@@ -122,7 +122,7 @@ private:
                                 // current mask.
 
   GridData<LMass> landmass;     // Land mass index for current mask.
-  int nlandmass;                // Number of landmasses.
+  LMass nlandmass;              // Number of landmasses.
   std::map<LMass, BBox> lmbbox;
   std::vector<int> lmcounts;    // Land mass box counts.
   std::vector<double> lmsizes;  // Land mass sizes.
