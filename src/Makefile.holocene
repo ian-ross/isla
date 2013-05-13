@@ -1,0 +1,63 @@
+export BOOST_CXXFLAGS=
+export NETCDF_CXXFLAGS=-I/home/ggxir/sw/include
+export NETCDF_LDFLAGS=-L/home/ggxir/sw/lib -Wl,-rpath,/home/ggxir/sw/lib
+LIBS=-lnetcdf_c++4 -lnetcdf
+
+WX_CXXFLAGS=$(subst -I,-isystem ,$(shell wx-config --cxxflags))
+WX_LDFLAGS=$(shell wx-config --libs core,base,html)
+
+CXXFLAGS_RELEASE=-Wall -O2
+CXXFLAGS_DEBUG=-g -Wall -DISLA_DEBUG -DISLA_EDIT
+CXXFLAGS_PROFILE=-g -fprofile-arcs -ftest-coverage
+CXXFLAGS=$(CXXFLAGS_RELEASE) $(WX_CXXFLAGS) $(BOOST_CXXFLAGS) $(NETCDF_CXXFLAGS)
+
+LDFLAGS=$(WX_LDFLAGS) $(NETCDF_LDFLAGS)
+
+PROG=isla
+HELPFILE=help/isla.htb
+
+SRCS=isla.cpp \
+     IslaFrame.cpp \
+     IslaModel.cpp \
+     IslaCompute.cpp \
+     IslaCanvas.cpp \
+     IslaPreferences.cpp \
+     Dialogues.cpp \
+     Grid.cpp
+
+OBJS=$(addprefix obj/,$(SRCS:.cpp=.o))
+
+all: obj $(PROG) help test
+
+install: obj $(PROG) help
+	mkdir -p ../install
+	mkdir -p ../install/bin
+	mkdir -p ../install/share/isla
+	install $(PROG) ../install/bin
+	install $(HELPFILE) ../install/share/isla
+
+obj:
+	if [ ! -d obj ]; then mkdir obj ; fi
+
+isla: $(OBJS)
+	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+.PHONY: test
+test:
+	cd test && $(MAKE)
+
+.PHONY: help
+help:
+	cd help && $(MAKE)
+
+depend:
+	makedepend -Y -pobj/ -- $(CXXFLAGS) -- $(SRCS) 2> /dev/null
+
+check-syntax:
+	gcc $(CXXFLAGS) -o /dev/null -S ${CHK_SOURCES}
+
+clean:
+	rm -f docmgr $(OBJS)
+
+obj/%.o: %.cpp
+	$(COMPILE.cpp) -o $@ $<
