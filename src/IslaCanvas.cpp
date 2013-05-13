@@ -56,8 +56,8 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   wxPaintDC dc(this);
   wxCoord th;
   dc.GetTextExtent(_("888"), &celllablimit, &th);
-  bw = 1.5 * th;
-  boff = 0.25 * th;
+  bw = static_cast<int>(1.5 * th);
+  boff = static_cast<int>(0.25 * th);
 
   // Model grid.
   GridPtr g = m->grid();
@@ -75,7 +75,8 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   double maplat = 180.0 + g->lat(1) - g->lat(0);
   maph = maplat * tmpscale;
   canw = mapw + 2 * bw;      canh = maph + 2 * bw;
-  xoff = (canw - mapw) / 2;  yoff = (canh - maph) / 2;
+  xoff = static_cast<int>((canw - mapw) / 2);
+  yoff = static_cast<int>((canh - maph) / 2);
 
   // Reset view.
   clon = 180.0;
@@ -85,7 +86,8 @@ IslaCanvas::IslaCanvas(wxWindow *parent, IslaModel *m) :
   ModelReset(m, false);
 
   // UI setup.
-  SetSize(wxDefaultCoord, wxDefaultCoord, canw, canh);
+  SetSize(wxDefaultCoord, wxDefaultCoord,
+          static_cast<int>(canw), static_cast<int>(canh));
   mouse = MOUSE_NOTHING;
   SetCursor(wxCursor(wxCURSOR_ARROW));
   SetBackgroundColour(*wxLIGHT_GREY);
@@ -173,9 +175,11 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   // Setup: determine minimum region to redraw.
   GridPtr g = model->grid();
   int nlon = g->nlon(), nlat = g->nlat();
-  int nhor = min(static_cast<double>(nlon), mapw / (minDlon * scale) + 1) + 1;
-  int nver = min(static_cast<double>(nlat), maph / (minDlat * scale) + 6);
-  int lon0 = XToLon(0), lat0 = YToLat(maph);
+  int nhor = static_cast<int>(min(static_cast<double>(nlon),
+                                  mapw / (minDlon * scale) + 1) + 1);
+  int nver = static_cast<int>(min(static_cast<double>(nlat),
+                                  maph / (minDlat * scale) + 6));
+  int lon0 = static_cast<int>(XToLon(0)), lat0 = static_cast<int>(YToLat(maph));
   int ilon0 = 0, ilat0 = 0;
   double loni = g->lon(ilon0), loni1 = g->lon((ilon0 + 1) % nlon);
   while (!(lon0 >= loni && lon0 < loni1 + (loni1 >= loni ? 0 : 360.0))) {
@@ -189,15 +193,16 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
 
   // Clear grid cell and axis areas.
   dc.SetBrush(*wxWHITE_BRUSH);
-  dc.DrawRectangle(xoff, yoff - bw, mapw, bw);
-  dc.DrawRectangle(xoff, yoff + maph, mapw, bw);
-  dc.DrawRectangle(xoff - bw, yoff, bw, maph);
-  dc.DrawRectangle(xoff + mapw, yoff, bw, maph);
+  int imapw = static_cast<int>(mapw), imaph = static_cast<int>(maph);
+  dc.DrawRectangle(xoff, yoff - bw, imapw, bw);
+  dc.DrawRectangle(xoff, yoff + imaph, imapw, bw);
+  dc.DrawRectangle(xoff - bw, yoff, bw, imaph);
+  dc.DrawRectangle(xoff + imapw, yoff, bw, imaph);
   dc.SetBrush(wxBrush(IslaPreferences::get()->getOceanColour()));
-  dc.DrawRectangle(xoff, yoff, mapw, maph);
+  dc.DrawRectangle(xoff, yoff, imapw, imaph);
 
   // Set clip region for grid cells and grid.
-  dc.SetClippingRegion(xoff, yoff, mapw, maph);
+  dc.SetClippingRegion(xoff, yoff, imapw, imaph);
 
   // Fill grid cells.
   dc.SetPen(*wxTRANSPARENT_PEN);
@@ -207,13 +212,14 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r)
       if (model->maskVal(r, c)) {
         dc.SetBrush(model->isIsland(r, c) ? island : land);
-        int xl = lonToX(iclons[c]), xr = lonToX(iclons[(c+1)%nlon]);
-        int yt = max(0.0, latToY(iclats[r]));
-        int yb = min(latToY(iclats[r+1]), canh);
+        int xl = static_cast<int>(lonToX(iclons[c]));
+        int xr = static_cast<int>(lonToX(iclons[(c+1)%nlon]));
+        int yt = static_cast<int>(max(0.0, latToY(iclats[r])));
+        int yb = static_cast<int>(min(latToY(iclats[r+1]), canh));
         if (xl <= xr)
           dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
         else {
-          dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl, yb-yt);
+          dc.DrawRectangle(xoff + xl, yoff + yt, imapw-xl, yb-yt);
           dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
         }
       }
@@ -223,14 +229,14 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   if (MinCellSize() >= 4) {
     dc.SetPen(wxPen(IslaPreferences::get()->getGridColour()));
     for (int i = 0, c = ilon0; i <= nhor; ++i, c = (c + 1) % nlon) {
-      int x = lonToX(iclons[c]);
+      int x = static_cast<int>(lonToX(iclons[c]));
       if (x >= 0 && x <= mapw)
-        dc.DrawLine(xoff + x, yoff, xoff + x, yoff + maph);
+        dc.DrawLine(xoff + x, yoff, xoff + x, yoff + imaph);
     }
     for (int i = 0, r = ilat0; i <= nver && r <= nlat; ++i, ++r) {
-      int y = latToY(iclats[r]);
+      int y = static_cast<int>(latToY(iclats[r]));
       if (y >= 0 && y <= maph)
-        dc.DrawLine(xoff, yoff + y, xoff + mapw, yoff + y);
+        dc.DrawLine(xoff, yoff + y, xoff + imapw, yoff + y);
     }
   }
 
@@ -265,96 +271,75 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
   axisLabels(dc, true, yoff - bw + boff, taxpos, taxlab);
   dc.DestroyClippingRegion();
   dc.SetClippingRegion(baxis);
-  axisLabels(dc, true, canh - yoff + boff, baxpos, baxlab);
+  axisLabels(dc, true, static_cast<int>(canh - yoff + boff), baxpos, baxlab);
   dc.DestroyClippingRegion();
   dc.SetClippingRegion(laxis);
-  axisLabels(dc, false, xoff - bw + 1.5 * boff, laxpos, laxlab);
+  axisLabels(dc, false, static_cast<int>(xoff - bw + 1.5 * boff),
+             laxpos, laxlab);
   dc.DestroyClippingRegion();
   dc.SetClippingRegion(raxis);
-  axisLabels(dc, false, canw - xoff + 1.5 * boff, raxpos, raxlab);
+  axisLabels(dc, false, static_cast<int>(canw - xoff + 1.5 * boff),
+             raxpos, raxlab);
 
   // Draw borders.
   dc.DestroyClippingRegion();
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
   dc.SetPen(*wxBLACK_PEN);
-  dc.DrawRectangle(xoff, yoff - bw, mapw, maph + bw * 2);
-  dc.DrawRectangle(xoff - bw, yoff, mapw + bw * 2, maph);
+  dc.DrawRectangle(xoff, yoff - bw, imapw, imaph + bw * 2);
+  dc.DrawRectangle(xoff - bw, yoff, imapw + bw * 2, imaph);
 
 #ifdef ISLA_DEBUG
   // Debug overlays.
+  int cs = static_cast<int>(MinCellSize());
+  wxCoord tw, th;
+  dc.SetFont(*wxSWISS_FONT);
+  dc.GetTextExtent(_("XX"), &tw, &th);
+  wxFont font(*wxSWISS_FONT);
+  if (th > 0.9 * cs) {
+    font.SetPointSize(static_cast<int>(font.GetPointSize() * 0.9 * cs / th));
+    dc.SetFont(font);
+  }
+  dc.SetClippingRegion(xoff, yoff, imapw, imaph);
   if (regionOverlay) {
-    wxCoord tw, th;
-    dc.SetFont(*wxSWISS_FONT);
-    dc.GetTextExtent(_("XX"), &tw, &th);
-    int cs = MinCellSize();
-    wxFont font(*wxSWISS_FONT);
-    if (th > 0.9 * cs) {
-      font.SetPointSize(font.GetPointSize() * 0.9 * cs / th);
-      dc.SetFont(font);
-    }
     dc.SetTextForeground(*wxBLUE);
-    dc.SetClippingRegion(xoff, yoff, mapw, maph);
     wxString txt;
     GridPtr g = model->grid();
     for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon) {
-      int x = xoff + lonToX(g->lon(c)) - tw / 2;
+      int x = static_cast<int>(xoff + lonToX(g->lon(c)) - tw / 2);
       for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
         txt.Printf(_("%d"), model->landMass(r, c));
-        int y = latToY(g->lat(r));
+        int y = static_cast<int>(latToY(g->lat(r)));
         dc.DrawText(txt, x, yoff + y - th / 2);
       }
     }
   }
   if (ismaskOverlay) {
-    wxCoord tw, th;
-    dc.SetFont(*wxSWISS_FONT);
-    dc.GetTextExtent(_("X"), &tw, &th);
-    int cs = MinCellSize();
-    wxFont font(*wxSWISS_FONT);
-    if (th > 0.9 * cs) {
-      font.SetPointSize(font.GetPointSize() * 0.9 * cs / th);
-      dc.SetFont(font);
-    }
     dc.SetTextForeground(*wxRED);
-    dc.SetClippingRegion(xoff, yoff, mapw, maph);
     wxString txt;
     GridPtr g = model->grid();
     for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon) {
-      int x = xoff + lonToX(iclons[c]) - tw / 2;
+      int x = static_cast<int>(xoff + lonToX(iclons[c]) - tw / 2);
       for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
         txt.Printf(_("%d"), model->isMask(r, c));
-        int y = latToY(iclats[r]);
+        int y = static_cast<int>(latToY(iclats[r]));
         dc.DrawText(txt, x, yoff + y - th / 2);
       }
     }
   }
   if (isIslandOverlay) {
-    wxCoord tw, th;
-    dc.SetFont(*wxSWISS_FONT);
-    dc.GetTextExtent(_("X"), &tw, &th);
-    int cs = MinCellSize();
-    wxFont font(*wxSWISS_FONT);
-    if (th > 0.9 * cs) {
-      font.SetPointSize(font.GetPointSize() * 0.9 * cs / th);
-      dc.SetFont(font);
-    }
     dc.SetTextForeground(*wxGREEN);
-    dc.SetClippingRegion(xoff, yoff, mapw, maph);
     wxString txt;
     GridPtr g = model->grid();
     for (int i = 0, c = ilon0; i < nhor; ++i, c = (c + 1) % nlon) {
-      int x = xoff + lonToX(g->lon(c)) - tw / 2;
+      int x = static_cast<int>(xoff + lonToX(g->lon(c)) - tw / 2);
       for (int j = 0, r = ilat0; j < nver && r < nlat; ++j, ++r) {
         txt = model->isIsland(r, c) ? _("X") : _("");
-        int y = latToY(g->lat(r));
+        int y = static_cast<int>(latToY(g->lat(r)));
         dc.DrawText(txt, x, yoff + y - th / 2);
       }
     }
   }
   if (sizingOverlay) {
-    wxCoord tw, th;
-    dc.SetFont(*wxSWISS_FONT);
-    dc.GetTextExtent(_("X"), &tw, &th);
     dc.SetTextForeground(*wxRED);
     int x = 50, y = 30, l = 0;
     wxString txt;
@@ -362,9 +347,10 @@ void IslaCanvas::OnPaint(wxPaintEvent &WXUNUSED(event))
     dc.DrawText(txt, x, y + th * l++);
     txt.Printf(_("minDlon=%.2f minDlat=%.2f"), minDlon, minDlat);
     dc.DrawText(txt, x, y + th * l++);
-    txt.Printf(_("canw=%d canh=%d"), canw, canh);
+    txt.Printf(_("canw=%d canh=%d"),
+               static_cast<int>(canw), static_cast<int>(canh));
     dc.DrawText(txt, x, y + th * l++);
-    txt.Printf(_("mapw=%d maph=%d"), mapw, maph);
+    txt.Printf(_("mapw=%d maph=%d"), imapw, imaph);
     dc.DrawText(txt, x, y + th * l++);
   }
 #endif
@@ -382,33 +368,35 @@ void IslaCanvas::drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
   dc.SetPen(p);
   for (vector<wxRect>::const_iterator jt = segs.begin();
        jt != segs.end(); ++jt) {
-    int xl = lonToX(g->lon((jt->x-1 + nlon) % nlon));
-    int xr = lonToX(g->lon((jt->x-1 + jt->width) % nlon));
-    int yb = min(latToY(g->lat(max(0, jt->y-1))), canh);
+    int xl = static_cast<int>(lonToX(g->lon((jt->x-1 + nlon) % nlon)));
+    int xr = static_cast<int>(lonToX(g->lon((jt->x-1 + jt->width) % nlon)));
+    int yb = static_cast<int>(min(latToY(g->lat(max(0, jt->y-1))), canh));
     int yt = jt->y-1 + jt->height >= nlat ?
-      0 : max(0.0, latToY(g->lat(jt->y-1 + jt->height)));
+      0 : static_cast<int>(max(0.0, latToY(g->lat(jt->y-1 + jt->height))));
     if (xl < xr)
       dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
     else {
-      dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+      dc.DrawRectangle(xoff + xl, yoff + yt,
+                       static_cast<int>(mapw)-xl+5, yb-yt);
       dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
     }
   }
   dc.SetPen(*wxTRANSPARENT_PEN);
   dc.SetBrush(vb);
   const IslaModel::CoincInfo &vhatch = isl.vcoinc;
-  int dx = lonToX(iclons[2]) - lonToX(iclons[1]);
+  int dx = static_cast<int>(lonToX(iclons[2]) - lonToX(iclons[1]));
   for (IslaModel::CoincInfo::const_iterator vit = vhatch.begin();
        vit != vhatch.end(); ++vit) {
-    int x = lonToX(g->lon((vit->first-1 + nlon) % nlon));
-    int yb = min(latToY(g->lat(vit->second.first-1)), canh);
+    int x = static_cast<int>(lonToX(g->lon((vit->first-1 + nlon) % nlon)));
+    int yb = static_cast<int>(min(latToY(g->lat(vit->second.first-1)), canh));
     int yt = vit->second.second >= nlat ?
-      0 : latToY(g->lat(vit->second.second-1));
+      0 : static_cast<int>(latToY(g->lat(vit->second.second-1)));
     int xl = x - dx / 2, xr = x + dx / 2;
     if (xl < xr)
       dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
     else {
-      dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+      dc.DrawRectangle(xoff + xl, yoff + yt,
+                       static_cast<int>(mapw)-xl+5, yb-yt);
       dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
     }
   }
@@ -416,15 +404,19 @@ void IslaCanvas::drawIsland(wxDC &dc, wxPen &p, wxBrush &vb, wxBrush &hb,
   const IslaModel::CoincInfo &hhatch = isl.hcoinc;
   for (IslaModel::CoincInfo::const_iterator hit = hhatch.begin();
        hit != hhatch.end(); ++hit) {
-    int y = min(latToY(g->lat(hit->first-1)), canh);
-    int dy = latToY(g->lat(hit->first-1)) - latToY(g->lat(hit->first));
-    int xl = lonToX(g->lon((hit->second.first-1 + nlon) % nlon));
-    int xr = lonToX(g->lon((hit->second.second-1 + nlon) % nlon));
+    int y = static_cast<int>(min(latToY(g->lat(hit->first-1)), canh));
+    int dy = static_cast<int>(latToY(g->lat(hit->first-1)) -
+                              latToY(g->lat(hit->first)));
+    int xl = static_cast<int>(lonToX(g->lon((hit->second.first-1 +
+                                             nlon) % nlon)));
+    int xr = static_cast<int>(lonToX(g->lon((hit->second.second-1 +
+                                             nlon) % nlon)));
     int yt = y - dy / 2, yb = y + dy / 2;
     if (xl < xr)
       dc.DrawRectangle(xoff + xl, yoff + yt, xr-xl, yb-yt);
     else {
-      dc.DrawRectangle(xoff + xl, yoff + yt, mapw-xl+5, yb-yt);
+      dc.DrawRectangle(xoff + xl, yoff + yt,
+                       static_cast<int>(mapw)-xl+5, yb-yt);
       dc.DrawRectangle(xoff, yoff + yt, xr, yb-yt);
     }
   }
@@ -447,8 +439,8 @@ void IslaCanvas::OnMouse(wxMouseEvent &event)
   bool ypanevent = laxis.Contains(x, y) || raxis.Contains(x, y);
   bool xpanevent = taxis.Contains(x, y) || baxis.Contains(x, y);
   if (event.GetEventType() == wxEVT_MOUSEWHEEL) {
-    if (xpanevent) Pan(0.25 * event.GetWheelRotation(), 0);
-    else           Pan(0, 0.25 * event.GetWheelRotation());
+    if (xpanevent) Pan(static_cast<int>(0.25 * event.GetWheelRotation()), 0);
+    else           Pan(0, static_cast<int>(0.25 * event.GetWheelRotation()));
   } else if (xpanevent || ypanevent || panning)
     ProcessPan(event, xpanevent, ypanevent);
   else if (zoom_selection) ProcessZoomSelection(event);
@@ -607,19 +599,20 @@ void IslaCanvas::SetupAxes(bool dox, bool doy)
   int tw, th;
 
   if (dox) {
-    taxis = wxRect(xoff, yoff - bw, mapw, bw);
-    baxis = wxRect(xoff, canh - yoff, mapw, bw);
+    taxis = wxRect(xoff, yoff - bw, static_cast<int>(mapw), bw);
+    baxis = wxRect(xoff, static_cast<int>(canh - yoff),
+                   static_cast<int>(mapw), bw);
     vector<int> tws(nlon);
     vector<int> poss(nlon);
     for (int i = 0; i < nlon; ++i) {
       txt.Printf(_("%d"), i == 0 ? nlon : i);
       dc.GetTextExtent(txt, &tw, &th);
       tws[i] = tw;
-      poss[i] = xoff + lonToX(g->lon((i - 1 + nlon) % nlon));
+      poss[i] = xoff + static_cast<int>(lonToX(g->lon((i - 1 + nlon) % nlon)));
     }
     int mindpos, maxtw;
     for (int i = 0; i < nlon; ++i) {
-      int dpos = fabs(poss[(i+1)%nlon] - poss[i]);
+      int dpos = static_cast<int>(fabs(poss[(i+1)%nlon] - poss[i]));
       if (i == 0 || (dpos > 0 && dpos < mindpos)) mindpos = dpos;
       if (i == 0 || tws[i] > maxtw) maxtw = tws[i];
     }
@@ -628,32 +621,36 @@ void IslaCanvas::SetupAxes(bool dox, bool doy)
     taxpos.resize(nlon / skip);
     taxlab.resize(nlon / skip);
     for (int i = 0; i < nlon / skip; ++i) {
-      taxpos[i] = xoff + lonToX(g->lon((i * skip - 1 + nlon) % nlon));
+      taxpos[i] = xoff +
+        static_cast<int>(lonToX(g->lon((i * skip - 1 + nlon) % nlon)));
       taxlab[i].Printf(_("%d"), i * skip == 0 ? nlon : i * skip);
     }
     baxpos.resize(9);
     baxlab.resize(9);
-    for (int i = 0; i < 9; ++i) baxpos[i] = xoff + lonToX(i * 45.0);
+    for (int i = 0; i < 9; ++i)
+      baxpos[i] = xoff + static_cast<int>(lonToX(i * 45.0));
     baxlab[0] = _("0"); baxlab[1] = _("45E");  baxlab[2] = _("90E");
     baxlab[3] = _("135E"); baxlab[4] = _("180"); baxlab[5] = _("135W");
     baxlab[6] = _("90W"); baxlab[7] = _("45W"); baxlab[8] = _("0");
   }
 
   if (doy) {
-    laxis = wxRect(xoff - bw, yoff, bw, maph);
-    raxis = wxRect(canw - xoff, yoff, bw, maph);
+    laxis = wxRect(xoff - bw, yoff, bw, static_cast<int>(maph));
+    raxis = wxRect(static_cast<int>(canw - xoff), yoff,
+                   bw, static_cast<int>(maph));
     vector<int> tws(nlat);
     vector<int> poss(nlat);
     for (int i = 0; i < nlat; ++i) {
       txt.Printf(_("%d"), i + 1);
       dc.GetTextExtent(txt, &tw, &th);
       tws[i] = tw;
-      poss[i] = xoff + latToY(g->lat(i));
+      poss[i] = xoff + static_cast<int>(latToY(g->lat(i)));
     }
     int mindpos, maxtw;
     for (int i = 0; i < nlat; ++i) {
       int dpos = i < nlat-1 ?
-                     fabs(poss[i+1] - poss[i]) : fabs(poss[i] - poss[i-1]);
+                     static_cast<int>(fabs(poss[i+1] - poss[i])) :
+                     static_cast<int>(fabs(poss[i] - poss[i-1]));
       if (i == 0 || (dpos > 0 && dpos < mindpos)) mindpos = dpos;
       if (i == 0 || tws[i] > maxtw) maxtw = tws[i];
     }
@@ -662,12 +659,13 @@ void IslaCanvas::SetupAxes(bool dox, bool doy)
     laxpos.resize(nlat / skip - (nlat % skip == 0 ? 1 : 0));
     laxlab.resize(nlat / skip - (nlat % skip == 0 ? 1 : 0));
     for (int i = skip; i < nlat; i += skip) {
-      laxpos[i/skip-1] = yoff + latToY(g->lat(i - 1));
+      laxpos[i/skip-1] = yoff + static_cast<int>(latToY(g->lat(i - 1)));
       laxlab[i/skip-1].Printf(_("%d"), i);
     }
     raxpos.resize(5);
     raxlab.resize(5);
-    for (int i = 0; i < 5; ++i) raxpos[i] = yoff + latToY(60 - i * 30.0);
+    for (int i = 0; i < 5; ++i)
+      raxpos[i] = yoff + static_cast<int>(latToY(60 - i * 30.0));
     raxlab[0] = _("60N"); raxlab[1] = _("30N"); raxlab[2] = _("0");
     raxlab[3] = _("30S"); raxlab[4] = _("60S");
   }
@@ -733,7 +731,7 @@ void IslaCanvas::Pan(int dx, int dy)
 
 void IslaCanvas::OnKey(wxKeyEvent &e)
 {
-  int d = MinCellSize();
+  int d = static_cast<int>(MinCellSize());
   switch (e.GetKeyCode()) {
   case WXK_LEFT:  Pan(d, 0);   e.Skip();  break;
   case WXK_RIGHT: Pan(-d, 0);  e.Skip();  break;
@@ -783,8 +781,10 @@ double IslaCanvas::FitScale(void) const
 void IslaCanvas::DoZoomToSelection(int x0, int y0, int x1, int y1)
 {
   // Adjust for border offsets and limit longitude to within canvas.
-  x0 -= bw;  x0 = max(0.0, min(static_cast<double>(x0), mapw));
-  x1 -= bw;  x1 = max(0.0, min(static_cast<double>(x1), mapw));
+  x0 -= bw;
+  x0 = static_cast<int>(max(0.0, min(static_cast<double>(x0), mapw)));
+  x1 -= bw;
+  x1 = static_cast<int>(max(0.0, min(static_cast<double>(x1), mapw)));
   y0 -= bw;  y1 -= bw;
 
   // Convert latitude to model (lat/lon) coordinate and limit to
@@ -822,10 +822,10 @@ void IslaCanvas::SizeRecalc(void)
     if (360.0 * scale < canw - bw * 2) scale = FitScale();
     mapw = min(360.0 * scale, canw - bw * 2);
   }
-  xoff = (canw - mapw) / 2;
+  xoff = static_cast<int>((canw - mapw) / 2);
   GridPtr g = model->grid();
   maph = min((180.0 + g->lat(1) - g->lat(0)) * scale, canh - bw * 2.0);
-  yoff = (canh - maph) / 2;
+  yoff = static_cast<int>((canh - maph) / 2);
   double halfh = maph / 2 / scale;
   clat = max(clat, iclats[0] + halfh);
   clat = min(clat, iclats[iclats.size()-1] - halfh);

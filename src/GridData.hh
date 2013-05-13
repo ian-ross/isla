@@ -122,7 +122,7 @@ template<typename T> GridData<T>::GridData
   netCDF::NcVar var = infile.getVars().find(ncvar)->second;
 
   // Check variable definition.
-  if (var.getDimCount() != 2 ||
+  if (var.getDimCount() != 2U ||
       (var.getDim(0).getName() != "lat" &&
        var.getDim(0).getName() != "latitude") ||
       var.getDim(0).getSize() != _nlat ||

@@ -40,7 +40,7 @@ IslaAboutDialogue::IslaAboutDialogue(wxWindow *p) :
     GetTextExtent(lines[i], &w, 0);
     if (i == 0 || w > maxw) maxw = w;
   }
-  wxSize sz(1.5 * maxw, -1);
+  wxSize sz(static_cast<int>(1.5 * maxw), -1);
   for (int i = 0; i < 4; ++i)
     sizer->Add(new wxStaticText(this, wxID_ANY, lines[i],
                                 wxDefaultPosition, sz));
@@ -99,7 +99,8 @@ IslaPrefDialogue::IslaPrefDialogue(wxWindow *p) :
   wxPaintDC dc(this);
   dc.GetTextExtent(_("000000000"), &tw, &th);
   island_threshold = new wxTextCtrl(this, ID_PREFS_ISLAND_THRESHOLD, init_val,
-                                    wxDefaultPosition, wxSize(1.1 * tw, -1));
+                                    wxDefaultPosition,
+                                    wxSize(static_cast<int>(1.1 * tw), -1));
   b1_item2sizer->Add(new wxStaticText(this, wxID_ANY,
                                       _("Island threshold (sq. km):")),
                      0, wxALL|wxALIGN_CENTER_VERTICAL, 5);

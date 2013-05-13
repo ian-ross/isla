@@ -243,7 +243,7 @@ void IslaModel::calcLandMasses(void)
 
   // Calculate land mass areas.
   lmsizes.clear();   lmsizes.resize(nlandmass+1, 0.0);
-  lmcounts.clear();  lmcounts.resize(nlandmass+1, 0.0);
+  lmcounts.clear();  lmcounts.resize(nlandmass+1, 0);
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c)
       if (landmass(r, c) >= 0) {
@@ -484,23 +484,27 @@ static void readIslandDataFromDump(int grid_nx, int grid_ny, wxFFile &fp,
   if (swapped) swap_bytes(data, sizeof(double), extra_data_length);
 
   // Set up island data.
-  isl.resize(data[0]);
+  isl.resize(static_cast<unsigned int>(data[0]));
   int idata = 1;
   vector<int> isis, ieis, jsis, jeis;
   for (unsigned int iisl = 0; iisl < isl.size(); ++iisl){
     char tmp[32];
     sprintf(tmp, "Island %d", iisl + 1);
     isl[iisl].name = tmp;
-    int nseg = data[idata++];
+    unsigned int nseg = static_cast<unsigned int>(data[idata++]);
     if (idata + nseg * 4 > extra_data_length)
       throw runtime_error("Format error in dump file island data");
     isis.clear();  ieis.clear();  jsis.clear();  jeis.clear();
-    for (int i = 0; i < nseg; ++i) isis.push_back(data[idata++]);
-    for (int i = 0; i < nseg; ++i) ieis.push_back(data[idata++]);
-    for (int i = 0; i < nseg; ++i) jsis.push_back(data[idata++]);
-    for (int i = 0; i < nseg; ++i) jeis.push_back(data[idata++]);
+    for (unsigned int i = 0; i < nseg; ++i)
+      isis.push_back(static_cast<unsigned int>(data[idata++]));
+    for (unsigned int i = 0; i < nseg; ++i)
+      ieis.push_back(static_cast<unsigned int>(data[idata++]));
+    for (unsigned int i = 0; i < nseg; ++i)
+      jsis.push_back(static_cast<unsigned int>(data[idata++]));
+    for (unsigned int i = 0; i < nseg; ++i)
+      jeis.push_back(static_cast<unsigned int>(data[idata++]));
     isl[iisl].segments.resize(nseg);
-    for (int i = 0; i < nseg; ++i)
+    for (unsigned int i = 0; i < nseg; ++i)
       isl[iisl].segments[i] =
         wxRect(isis[i], jsis[i], ieis[i]-isis[i]+1, jeis[i]-jsis[i]+1);
   }
