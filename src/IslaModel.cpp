@@ -230,13 +230,13 @@ static void floodFill(GridData<T> &res, int r0, int c0, T val, T empty,
 void IslaModel::calcLandMasses(void)
 {
   // Determine initial land mass extents by flood fill.
-  landmass = -1;
   int nlon = gr->nlon(), nlat = gr->nlat();
   nlandmass = 0;
   LMass marker = numeric_limits<unsigned int>::max();
+  landmass = marker;
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c) {
-      if (landmass(r, c) >= 0) continue;
+      if (landmass(r, c) != marker) continue;
       if (!mask(r, c)) { landmass(r, c) = 0; continue; }
       floodFill(landmass, r, c, ++nlandmass, marker, mask);
     }
