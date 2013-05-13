@@ -54,7 +54,7 @@ depend:
 	makedepend -Y -pobj/ -- $(CXXFLAGS) -- $(SRCS) 2> /dev/null
 
 check-syntax:
-	gcc -o /dev/null -S ${CHK_SOURCES}
+	gcc $(CXXFLAGS) -o /dev/null -S ${CHK_SOURCES}
 
 clean:
 	rm -f docmgr $(OBJS)
