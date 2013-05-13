@@ -32,9 +32,9 @@ IslaAboutDialogue::IslaAboutDialogue(wxWindow *p) :
   sizer->Add(sbmp, 0, wxCENTRE | wxALL, 10);
   sizer->Add(new wxStaticLine(this, wxID_ANY), 0, wxGROW | wxLEFT | wxRIGHT, 5);
   wxString lines[] = { _(""),
-                       _("Isla version 0.2"),
-                       _("© 2013 Ian Ross"),
-                       _("<ian@skybluetrades.net>") };
+                       _("     Isla version 1.0 (13 May 2013)"),
+                       _("     © 2013 Ian Ross"),
+                       _("     ian@skybluetrades.net") };
   int w, maxw;
   for (int i = 0; i < 4; ++i) {
     GetTextExtent(lines[i], &w, 0);

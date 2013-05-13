@@ -87,15 +87,19 @@ IslaFrame::IslaFrame() :
 
   wxMenu *menuFile = new wxMenu(wxMENU_TEAROFF);
   menuView = new wxMenu(wxMENU_TEAROFF);
+#ifdef ISLA_EDIT
   menuTools = new wxMenu(wxMENU_TEAROFF);
+#endif
   wxMenu *menuHelp = new wxMenu(wxMENU_TEAROFF);
 
   menuFile->Append(wxID_NEW, _("&Clear grid"),
                    _("Clear land/sea mask and island data"));
   menuFile->Append(wxID_OPEN, _("&Load land/sea mask..."),
                    _("Load land/sea mask data from a NetCDF file"));
+#ifdef ISLA_EDIT
   menuFile->Append(wxID_SAVE, _("Sa&ve land/sea mask..."),
                    _("Save current land/sea mask data to a NetCDF file"));
+#endif
   menuFile->Append(ID_EXPORT_ISLAND_DATA, _("&Export island data...\tCtrl-E"),
                    _("Write new island data file"));
   menuFile->AppendSeparator();
@@ -125,10 +129,12 @@ IslaFrame::IslaFrame() :
                             _("Show comparison\tC"),
                             _("Display island comparison data on map"));
 
+#ifdef ISLA_EDIT
   menuTools->AppendCheckItem(ID_SELECT, _("&Select"), _("Select items"));
   menuTools->AppendCheckItem(ID_EDIT_MASK, _("&Edit land/sea mask"),
                              _("Edit land/sea mask by "
                                "toggling state of cells"));
+#endif
 
   menuHelp->Append(wxID_HELP_CONTENTS, _("&Contents\tCtrl-H"),
                    _("Show help contents"));
@@ -138,7 +144,9 @@ IslaFrame::IslaFrame() :
   wxMenuBar *menuBar = new wxMenuBar();
   menuBar->Append(menuFile, _("&File"));
   menuBar->Append(menuView, _("&View"));
+#ifdef ISLA_EDIT
   menuBar->Append(menuTools, _("&Tools"));
+#endif
   menuBar->Append(menuHelp, _("&Help"));
 #ifdef ISLA_DEBUG
   wxMenu *menuDebug = new wxMenu(wxMENU_TEAROFF);
@@ -175,6 +183,7 @@ IslaFrame::IslaFrame() :
                    wxBITMAP(zoom_select), wxString(_("Zoom to selection")));
   toolBar->AddCheckTool(ID_PAN, _("Pan"),
                         wxBITMAP(pan), wxNullBitmap, wxString(_("Pan view")));
+#ifdef ISLA_EDIT
   toolBar->AddSeparator();
   toolBar->AddCheckTool(ID_SELECT, _("Select"),
                         wxBITMAP(select), wxNullBitmap,
@@ -182,13 +191,16 @@ IslaFrame::IslaFrame() :
   toolBar->AddCheckTool(ID_EDIT_MASK, _("Edit land/sea mask"),
                         wxBITMAP(edit), wxNullBitmap,
                         wxString(_("Edit land/sea mask")));
+#endif
   toolBar->Realize();
   toolBar->EnableTool(wxID_ZOOM_IN, false);
   toolBar->EnableTool(wxID_ZOOM_OUT, false);
+#ifdef ISLA_EDIT
   toolBar->ToggleTool(ID_SELECT, true);
   menuView->Check(ID_SELECT, true);
   toolBar->ToggleTool(ID_EDIT_MASK, false);
   menuView->Check(ID_EDIT_MASK, false);
+#endif
   menuView->Check(ID_SHOW_ISLANDS, true);
   menuView->Check(ID_SHOW_COMPARISON, true);
 
@@ -269,10 +281,12 @@ void IslaFrame::UpdateUI()
   GetMenuBar()->Enable(wxID_ZOOM_OUT, outok);
   toolBar->ToggleTool(ID_PAN, canvas->Panning());
   menuView->Check(ID_PAN, canvas->Panning());
+#ifdef ISLA_EDIT
   toolBar->ToggleTool(ID_EDIT_MASK, canvas->Editing());
   menuTools->Check(ID_EDIT_MASK, canvas->Editing());
   toolBar->ToggleTool(ID_SELECT, !canvas->Editing());
   menuTools->Check(ID_SELECT, !canvas->Editing());
+#endif
   menuView->Check(ID_SHOW_ISLANDS, canvas->ShowIslands());
   menuView->Check(ID_SHOW_COMPARISON, canvas->ShowComparison());
 }

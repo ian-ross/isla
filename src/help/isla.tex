@@ -6,9 +6,9 @@
 \parskip=10pt
 \parindent=0pt
 
-\title{Isla v0.2: the UM island file editor}
-\author{Ian~Ross}
-\date{May~2013}
+\title{Isla v1.0: the UM island file editor}
+\author{Ian Ross}
+\date{13 May 2013}
 
 \makeindex
 
@@ -158,8 +158,8 @@ The \textbf{File} menu has the following operations:
   \item[Load land/sea mask... (\textit{Ctrl-O})]{Loads a land/sea mask
     from a NetCDF file; triggers determination of landmasses, island
     thresholding and island segmentation calculations.}
-  \item[Save land/sea mask... (\textit{Ctrl-S})]{Writes the current
-    land/sea mask to a new NetCDF file.}
+  %% \item[Save land/sea mask... (\textit{Ctrl-S})]{Writes the current
+  %%   land/sea mask to a new NetCDF file.}
   \item[Export island data... (\textit{Ctrl-E})]{Saves current island
     segments to ASCII island file (suitable for use with recent
     versions of \texttt{mkancil}).}
@@ -196,13 +196,13 @@ The \textbf{File} menu has the following operations:
     island segmentation information loaded from a dump or ASCII file.}
 \end{description}
 
-\section{Tools menu}
+%% \section{Tools menu}
 
-The two items in this menu are really only of interest for testing
-Isla: by default, the ``Select'' tool is engaged.  The other option,
-``Edit land/sea mask'', is used for modifying land/sea masks to be
-saved to new NetCDF files for testing purposes.  Most normal uses of
-Isla should not need this tool.
+%% The two items in this menu are really only of interest for testing
+%% Isla: by default, the ``Select'' tool is engaged.  The other option,
+%% ``Edit land/sea mask'', is used for modifying land/sea masks to be
+%% saved to new NetCDF files for testing purposes.  Most normal uses of
+%% Isla should not need this tool.
 
 \section{Help menu}
 
@@ -210,18 +210,18 @@ Documentation for Isla is accessed from the ``Contents'' item in the
 \textbf{Help} menu.  The ``About'' option displays version
 information.
 
-\section{Debug menu}
+%% \section{Debug menu}
 
-Isla v0.2 also has a \textbf{Debug} menu that allows information used
-in the island segmentation computation to be displayed as overlays on
-the map view.  Of most interest is the ``ISMASK overlay'' option,
-which displays (on the model streamfunction grid) the \texttt{ISMASK}
-field used in the UM streamfunction line integral calculation
-(\texttt{ISMASK=0} corresponds to ocean points, \texttt{ISMASK=1} to
-landmass boundary points and \texttt{ISMASK=2} to landmass interior
-points).  Other options display land mass assignments and island
-determination.  These tools are probably only of interest to users
-helping to debug problems with Isla.
+%% Isla v0.2 also has a \textbf{Debug} menu that allows information used
+%% in the island segmentation computation to be displayed as overlays on
+%% the map view.  Of most interest is the ``ISMASK overlay'' option,
+%% which displays (on the model streamfunction grid) the \texttt{ISMASK}
+%% field used in the UM streamfunction line integral calculation
+%% (\texttt{ISMASK=0} corresponds to ocean points, \texttt{ISMASK=1} to
+%% landmass boundary points and \texttt{ISMASK=2} to landmass interior
+%% points).  Other options display land mass assignments and island
+%% determination.  These tools are probably only of interest to users
+%% helping to debug problems with Isla.
 
 
 %======================================================================
