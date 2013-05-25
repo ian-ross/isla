@@ -219,7 +219,7 @@ void IslaCompute::boundRows(LMass lm, Seg &rs)
 {
   IslaModel::BBox bbox = lmbbox.find(lm)->second;
   rs.clear();
-  int segid = 0;
+  int segid = 0, nx = glm.nlon();
   set<int> last, cur;
   for (int ib = 0; ib < (bbox.both ? 2 : 1); ++ib) {
     wxRect &box = ib == 0 ? bbox.b1 : bbox.b2;
