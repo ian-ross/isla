@@ -173,7 +173,7 @@ void IslaModel::setIsIsland(int cr, int cc, bool val)
 {
   if (!mask(cr, cc)) return;
   LMass lm = landmass(cr, cc);
-  bool found = false, before;
+  bool found = false, before = false;
   int nlat = gr->nlat(), nlon = gr->nlon();
   for (int r = 0; r < nlat; ++r)
     for (int c = 0; c < nlon; ++c)
@@ -358,7 +358,7 @@ void IslaModel::calcBBoxes(void)
 bool IslaModel::calcIsland(LMass lm)
 {
   IslaCompute compute(landmass, lmbbox, ismask);
-  int startr, startc;
+  int startr = 0, startc = 0;
   bool found = false;
   int nlat = gr->nlat(), nlon = gr->nlon();
   for (startr = 0; startr < nlat; ++startr) {
@@ -522,7 +522,7 @@ static bool parseASCIIIslands(int grid_nx, int grid_ny, wxString fname,
   // Process line by line.
   enum State { BEFORE_COUNT, BEFORE_SEGS, READING_SEGS };
   State state = BEFORE_COUNT;
-  int iisl = 0, istep, iseg, nseg;
+  int iisl = 0, istep = 0, iseg = 0, nseg = 0;
   wxString islandname = _("");
   vector<int> isis, ieis, jsis, jeis;
   bool bad = false;

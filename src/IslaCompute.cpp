@@ -226,7 +226,7 @@ void IslaCompute::boundRows(LMass lm, Seg &rs)
     for (int y = 0; y < box.height; ++y) {
       vector<int> xs;
       for (int x = 0; x < box.width; ++x)
-        if (glm(box.y + y, box.x + x) == lm)
+        if (glm(box.y + y, (box.x + x) % nx) == lm)
           xs.push_back(box.x + x);
       vector< pair<int,int> > xruns;
       runs(xs, xruns);
